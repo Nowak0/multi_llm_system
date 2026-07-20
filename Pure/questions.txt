@@ -1,0 +1,24 @@
+Find a rational approximation of π with denominator less than 1,000
+
+Find the length of the hypotenuse of a right triangle with legs 3 and 4
+
+Let ABCD be a regular tetrahedron with side length 1. Let u = vector AB and v = vector AC. Compute the exact value of ||u + v||.
+
+Find the remainder of 7^100 when divided by 13 using Fermat's Little Theorem in numerical form
+
+Find the derivative of f(x) = e^(2*x) * cos(x)
+
+Determine the value of the infinite sum: 1/2 + 2/4 + 3/8 + 4/16 + ... + n/(2^n)
+
+Find the height of a regular tetrahedron with side length 1
+
+Find the number of trailing zeros in the decimal representation of 100!
+
+What is the probability of getting exactly 5 heads in 10 fair coin flips?
+
+A convex polyhedron has 12 vertices and 30 edges. How many faces does it have?
+
+Solve for x: log2(x) + log2(x - 2) = 3
+
+Simplify the expression sqrt(50) + sqrt(18) - sqrt(8) and provide the result in exact radical form
+
