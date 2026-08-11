@@ -1,9 +1,9 @@
 import json
 import random
 
-from Pure.Agent import Agent
-from Pure.exceptions import StatusMismatchException, StagnationException
-from Pure.prompts import WORKER
+from Agent import Agent
+from exceptions import StatusMismatchException, StagnationException
+from prompts import WORKER
 
 CONSOLE_LOGS = True
 MAX_RUNS = 16

@@ -1,15 +1,11 @@
-from Pure.Agent import check_ollama_model, quit_ollama
-from Pure.hive_mind import prepare_hive_mind
+from Agent import check_ollama_model, quit_ollama
+from hive_mind import prepare_hive_mind
 
-MODEL_OLD = "llama3.1:8b"
-MODEL_HEAVY = "deepseek-r1:14b"
-MODEL_REGULAR_1 = "qwen2.5:7b"
-MODEL_REGULAR_2 = "gemma2:9b"
-MODEL_LIGHT_ANALYTICAL = "phi4-mini"
-MODEL_LIGHT_KNOWLEDGE = "gemma2:2b"
+MODEL_1 = "qwen3.5:9b"
+MODEL_2 = "gemma4:e4b"
 CONSOLE_LOGS = True
 N_WORKERS = 2
-USED_MODELS = [MODEL_REGULAR_1, MODEL_REGULAR_2]
+USED_MODELS = [MODEL_1, MODEL_2]
 
 
 def main():

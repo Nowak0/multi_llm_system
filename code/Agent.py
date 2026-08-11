@@ -2,7 +2,7 @@ import subprocess
 import requests
 
 OLLAMA_CHAT_URL = "http://localhost:11434/api/chat"
-OLLAMA_TIMEOUT = 120
+OLLAMA_TIMEOUT = 1200
 
 
 def check_ollama_model(model: str):
