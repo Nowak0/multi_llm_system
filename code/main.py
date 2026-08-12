@@ -2,7 +2,7 @@ from Agent import check_ollama_model, quit_ollama
 from hive_mind import prepare_hive_mind
 
 MODEL_1 = "qwen3.5:9b"
-MODEL_2 = "gemma4:e4b"
+MODEL_2 = "gemma4:12b"
 CONSOLE_LOGS = True
 N_WORKERS = 2
 USED_MODELS = [MODEL_1, MODEL_2]

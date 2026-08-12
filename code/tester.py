@@ -5,11 +5,11 @@ from hive_mind import prepare_hive_mind
 from prompts import SINGLE_MODEL
 
 MODEL_1 = "qwen3.5:9b"
-MODEL_2 = "gemma4:e4b"
+MODEL_2 = "gemma4:12b"
 CONSOLE_LOGS = True
 N_WORKERS = 2
-N_RUNS_PER_TEST = 3
-USED_MODELS = [MODEL_1, MODEL_2]
+N_RUNS_PER_TEST = 1
+USED_MODELS = [MODEL_2, MODEL_1]
 
 
 def run_tests():
@@ -27,10 +27,9 @@ def run_tests():
 
 
 def prepare_questions():
-    # file = open('questions.txt')
-    # questions = file.read().splitlines()
-    # questions = [q for q in questions if q != '']
-    questions = ["""Solve the following math problem step by step. The last line of your response should be of the form "ANSWER: $ANSWER" (without quotes) where $ANSWER is the answer to the problem.  Solve for $x$: $\frac{x}{7}+\frac{x}{3}=1-x$.  Remember to put your answer on its own line at the end in the form "ANSWER: $ANSWER" (without quotes) where $ANSWER is the answer to the problem, and you do not need to use a \boxed command."""]
+    file = open('questions.txt')
+    questions = file.read().splitlines()
+    questions = [q for q in questions if q != '']
     return questions
 
 
@@ -43,7 +42,9 @@ def handle_question(question: str):
 
     for i in range(1,N_RUNS_PER_TEST+1):
         result_dict["hive_mind"][i] = run_hive_mind(question)
-        result_dict["single_model"][i] = run_single_model(question)
+
+        for j, model in enumerate(USED_MODELS, 1):
+            result_dict["single_model"][j] = run_single_model(question, model)
 
     with open('test.txt', 'a') as f:
         f.write(json.dumps(result_dict, indent=4))
@@ -58,8 +59,8 @@ def run_hive_mind(question: str):
     return prepare_hive_mind(question, CONSOLE_LOGS, N_WORKERS, USED_MODELS)
 
 
-def run_single_model(question: str):
-    agent = Agent(model=MODEL_1, role=SINGLE_MODEL)
+def run_single_model(question: str, model: str):
+    agent = Agent(model=model, role=SINGLE_MODEL)
     prompt = agent.build_chat_prompt(user_input=question)
     result = agent.ollama_chat(prompt=prompt, temperature=0.5, max_tokens=2000)
     return json.loads(result)["final_answer"]

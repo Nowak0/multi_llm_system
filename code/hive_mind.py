@@ -1,5 +1,6 @@
 import json
 import random
+import re
 
 from Agent import Agent
 from exceptions import StatusMismatchException, StagnationException
@@ -7,6 +8,20 @@ from prompts import WORKER
 
 CONSOLE_LOGS = True
 MAX_RUNS = 16
+WORKER_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "thought": {"type": "string"},
+        "status": {
+            "type": "string",
+            "enum": ["research", "calculating", "done", "idle"]
+        },
+        "research": {"type": ["string", "null"]},
+        "calculation": {"type": ["string", "null"]},
+        "final_answer": {"type": ["string", "null"]}
+    },
+    "required": ["thought", "status", "research", "calculation", "final_answer"]
+}
 
 
 def console_log(message):
@@ -15,7 +30,25 @@ def console_log(message):
         print(message)
 
 
-def run_agent(agent: Agent, insight: dict, temperature: float = None, max_tokens: int = None):
+def _extract_json(raw: str):
+    text = raw.strip()
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
+
+    if text.startswith("```"):
+        text = re.sub(r"^```[a-zA-Z]*\n?", "", text)
+        text = re.sub(r"```$", "", text).strip()
+
+    try:
+        json.loads(text)
+        return text
+    except json.decoder.JSONDecodeError:
+        match = re.search(r"\{.*\}", text, flags=re.DOTALL)
+        if match:
+            return match.group(0)
+        return text
+
+
+def run_agent(agent: Agent, insight: dict, temperature: float = None, max_tokens: int = None, schema: dict = None):
     """Build a proper prompt for given agent and runs a chat with it"""
     prompt = f"""
     USER_PROMPT: {insight.get('prompt')},
@@ -33,18 +66,23 @@ def run_agent(agent: Agent, insight: dict, temperature: float = None, max_tokens
         kwargs['temperature'] = temperature
     if max_tokens is not None:
         kwargs['max_tokens'] = max_tokens
+    if schema is not None:
+        kwargs['schema'] = schema
 
     return agent.ollama_chat(prompt=prompt, **kwargs)
 
 
 def run_worker(agent: Agent, insight: dict, temperature: float, max_tokens: int):
     """Runs worker with selected options"""
-    result = run_agent(agent=agent, insight=insight, temperature=temperature, max_tokens=max_tokens)
+    result = run_agent(agent=agent, insight=insight, temperature=temperature, max_tokens=max_tokens,
+                        schema=WORKER_SCHEMA)
 
+    cleaned = _extract_json(result)
     try:
-        return json.loads(result)
-    except json.decoder.JSONDecodeError:
-        print("Calculation agent failed to produce valid JSON")
+        return json.loads(cleaned)
+    except json.decoder.JSONDecodeError as e:
+        print(f"Calculation agent failed to produce valid JSON ({agent.model}): {e}")
+        print(f"RAW OUTPUT:\n{result!r}\n")
         return None
         # raise RuntimeError("Calculation agent failed to produce valid JSON")
 
@@ -69,6 +107,7 @@ def handle_new_information(information_arr: list[str], new_information: str):
 
 def handle_response(response, insight: dict):
     """Handles a response by status"""
+    console_log(f"\tResponse: {response}")
     console_log(f"\tThought process:\n\t- {response.get('thought')}")
 
     status = response.get('status')
@@ -99,6 +138,9 @@ def handle_worker(worker: Agent, insight: dict):
     """Runs worker with no role defined"""
     try:
         response = run_worker(worker, insight=insight, temperature=random.uniform(0.04,0.06), max_tokens=2000)
+        if response is None:
+            console_log("\tSkipping turn: worker did not return valid JSON.")
+            return
         handle_response(response, insight)
     except StatusMismatchException as e:
         console_log(f"Worker responded with wrong status code. Correct response: {e}")
