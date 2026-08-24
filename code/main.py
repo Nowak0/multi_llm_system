@@ -1,26 +1,43 @@
-from Agent import check_ollama_model, quit_ollama
-from hive_mind import prepare_hive_mind
+"""Interactive single-question entry point to the multi-agent debate system.
 
-MODEL_1 = "qwen3.5:9b"
-MODEL_2 = "gemma4:12b"
+Type a problem at the prompt and get one final answer (or ABSTAIN if the agents
+never reach consensus).
+"""
+
+from Agent import check_ollama_model, quit_ollama
+from debate import run_debate, DEFAULT_ROUNDS
+from grading import ABSTAIN
+from utils import log
+
+MODEL_QWEN = "qwen3.5:9b"
+MODEL_GEMMA = "gemma4:12b"
+MODELS = [MODEL_QWEN, MODEL_GEMMA]
 CONSOLE_LOGS = True
-N_WORKERS = 2
-USED_MODELS = [MODEL_1, MODEL_2]
+ROUNDS = DEFAULT_ROUNDS
 
 
 def main():
     try:
-        for model in USED_MODELS:
+        for model in MODELS:
             check_ollama_model(model)
 
-        user_input = input("> ")
-        final_answer = prepare_hive_mind(user_input, CONSOLE_LOGS, N_WORKERS, USED_MODELS)
-        print("\n\nFINAL ANSWER:", final_answer, "\n\n")
+        domain = input("Domain [math/medical] (default math): ").strip().lower() or "math"
+        if domain not in ("math", "medical"):
+            domain = "math"
+
+        question = input("> ")
+        result = run_debate(question, domain, MODELS, rounds=ROUNDS, console=CONSOLE_LOGS)
+
+        if result["answer"] == ABSTAIN:
+            log(CONSOLE_LOGS,"\n\nFINAL ANSWER: ABSTAIN (agents did not reach consensus)\n\n")
+        else:
+            log(CONSOLE_LOGS,f"\n\nFINAL ANSWER: {result['answer']} "
+                  f"(consensus after {result['rounds']} debate round(s))\n\n")
     finally:
-        for model in USED_MODELS:
+        for model in MODELS:
             quit_ollama(model)
-        if CONSOLE_LOGS:
-            print(f"Finished shutting down all used models")
+        log(CONSOLE_LOGS,"Finished shutting down all used models")
+
 
 if __name__ == "__main__":
     main()

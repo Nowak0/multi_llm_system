@@ -2,7 +2,7 @@ import subprocess
 import requests
 
 OLLAMA_CHAT_URL = "http://localhost:11434/api/chat"
-OLLAMA_TIMEOUT = 120
+OLLAMA_TIMEOUT = 600
 
 
 def check_ollama_model(model: str):
@@ -43,15 +43,19 @@ class Agent():
         ]
 
     def ollama_chat(self, prompt: list[dict], temperature: float = 0.7, max_tokens: int = 2000, schema: dict = None,
-                     think: bool = False):
+                     seed: int = None, think: bool = False):
         """Get a response from Ollama /api/chat."""
+        options = {
+            "temperature": temperature,
+            "num_predict": max_tokens
+        }
+        if seed is not None:
+            options["seed"] = seed
+
         package = {
             "model": self.model,
             "messages": prompt,
-            "options": {
-                "temperature": temperature,
-                "num_predict": max_tokens
-            },
+            "options": options,
             "stream": False,
             "format": schema if schema is not None else "json",
             "think": think
@@ -61,8 +65,4 @@ class Agent():
         response.raise_for_status()
         message = response.json()["message"]
 
-        content = message.get("content", "")
-        if not content.strip() and message.get("thinking"):
-            content = message["thinking"]
-
-        return content
+        return message.get("content", "") or ""

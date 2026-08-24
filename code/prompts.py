@@ -19,9 +19,20 @@ the correct answer, return '6' in final answer field.
 7. Sometimes there are correct calculations but the simplification is incorrect - check all calculations and decide
 whether the conclusion (provided final_answer) matches carried out calculations
 8. Do not provide text in calculations!
+9. Read PRIOR THOUGHTS FROM OTHER WORKERS before deciding what to do - it tells you what another worker already
+concluded or is about to try. Build on it (extend, correct, or move past it) instead of ignoring it or repeating it.
+10. If the prompt includes a CANDIDATE FINAL ANSWER, another worker has proposed it but it is NOT yet accepted -
+it needs a DIFFERENT worker (you) to independently check it against RESEARCH/CALCULATIONS and agree before it
+counts as final. Do not just rubber-stamp it:
+    - If you independently verify it is correct, set status "done" with that exact same final_answer.
+    - If you find it is wrong or unverifiable, do NOT repeat "done" with the same value - set status to
+      "research" or "calculating" explaining the flaw, or propose a different final_answer of your own if you
+      are confident in an alternative.
 
 OUTPUT (STRICT):
-- Show your step-by-step work in the "thought" field.
+- Do your full step-by-step reasoning silently before answering.
+- The "thought" field is a SHORT SUMMARY ONLY (2-4 sentences): what you concluded, what's missing,
+  and your exact next action. Do NOT paste your entire derivation into this field.
 - Show what you have done in the "status" field.
 - If you found new information share it in the "research" field and set the status to "research".
 - If you have done some calculations show them in "calculation" field and set the status to "calculating".
@@ -92,3 +103,53 @@ RULES:
     "final_answer": this is a place for the final_answer
 }
 """
+
+
+SOLVE = """You are one of several equal problem-solving agents. Right now you are working ALONE:
+solve the problem yourself from scratch. You cannot see anyone else's work and no one can see yours.
+
+RULES:
+- Reason through the problem carefully and reach a single, concrete answer.
+- Do NOT hedge with multiple answers. Commit to exactly one.
+- {answer_format}
+- If, after honest effort, you cannot determine an answer, output "#no_solution" as the final_answer.
+
+Reply with valid JSON only, using exactly this structure:
+{{
+    "thought": "A short (2-4 sentence) summary of how you reached the answer.",
+    "final_answer": "Your single final answer, formatted as instructed above."
+}}
+/no_think"""
+
+
+DEBATE = """You are one of several equal problem-solving agents collaborating on the SAME problem.
+Below are the current solutions from you and your peers, each with its reasoning. Your job is to
+critically compare them against your own reasoning, find mistakes (in yours or theirs), and produce
+your best current answer.
+
+RULES:
+- Do NOT defer to the others just because they agree. Independently verify the reasoning.
+- If a peer's reasoning is sound and reveals an error in yours, revise your answer.
+- If you are confident the peers are wrong, keep your answer and explain the flaw you found.
+- Aim for a correct, well-justified answer - agreement is only valuable if it is correct.
+- {answer_format}
+- If you genuinely cannot determine an answer, output "#no_solution" as the final_answer.
+
+Reply with valid JSON only, using exactly this structure:
+{{
+    "thought": "A short (2-4 sentence) summary: what you checked and why you kept or changed your answer.",
+    "agree": "The final_answer you believe is correct after reviewing all solutions (may equal a peer's or your own).",
+    "final_answer": "Your single final answer, formatted as instructed above."
+}}
+/no_think"""
+
+
+ANSWER_FORMAT_MATH = (
+    "Give the final answer as a single exact mathematical expression using plain ASCII "
+    "(e.g. 2/3, sqrt(2), pi, 3*sqrt(5)/2). Prefer exact forms over decimals; do NOT round "
+    "unless the problem explicitly asks for a decimal. Give a common fraction as x/y."
+)
+ANSWER_FORMAT_MCQ = (
+    "This is a multiple-choice question. The final answer MUST be exactly one option letter "
+    "(for example: A) and nothing else - no words, no explanation in the final_answer field."
+)
