@@ -2,8 +2,8 @@ from debate import _run_turn, SOLVE_SCHEMA, ANSWER_FORMATS, _answer_of, _is_answ
 from prompts import SOLVE
 from grading import equiv_fn
 
-SOLO_TEMPERATURE = 0.0
-SC_TEMPERATURE = 0.2
+SOLO_TEMPERATURE = 0.1
+SC_TEMPERATURE = 0.1
 MAX_TOKENS = 6000
 
 

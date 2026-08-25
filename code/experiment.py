@@ -31,8 +31,8 @@ def _run_conditions(record: dict) -> dict:
 
     answers["qwen_solo"] = run_solo(q, domain, MODEL_QWEN, seed=SEED)["answer"]
     answers["gemma_solo"] = run_solo(q, domain, MODEL_GEMMA, seed=SEED)["answer"]
-    answers["qwen_sc"] = run_self_consistency(q, domain, MODEL_QWEN, K, seed=SEED)["answer"]
-    answers["gemma_sc"] = run_self_consistency(q, domain, MODEL_GEMMA, K, seed=SEED)["answer"]
+    # answers["qwen_sc"] = run_self_consistency(q, domain, MODEL_QWEN, K, seed=SEED)["answer"]
+    # answers["gemma_sc"] = run_self_consistency(q, domain, MODEL_GEMMA, K, seed=SEED)["answer"]
 
     deb = run_debate(q, domain, MODELS, rounds=ROUNDS, seed=SEED, console=CONSOLE_LOGS)
     answers["debate"] = deb["answer"]
@@ -50,8 +50,7 @@ def run_domain(domain: str, limit: int) -> list[dict]:
 
     with open(path, "a", encoding="utf-8") as f:
         for i, rec in enumerate(records, 1):
-            if CONSOLE_LOGS:
-                print(f"\n[{domain} {i}/{len(records)}] {rec['id']}")
+            log(CONSOLE_LOGS, f"\n[{domain} {i}/{len(records)}] {rec['id']}")
             answers = _run_conditions(rec)
 
             correct = {
@@ -97,27 +96,23 @@ def coverage_and_answered_acc(rows, cond) -> tuple[float, float]:
 
 
 def mcnemar(rows, cond_a, cond_b) -> dict:
-    """Exact McNemar test on the paired correct/incorrect outcomes.
-
-    b = #(a correct, b wrong), c = #(a wrong, b correct). Abstentions count as
-    wrong (overall-accuracy convention). Uses the exact binomial two-sided
-    p-value so no scipy dependency is needed."""
-    b = c = 0
+    """Exact McNemar test on the paired correct/incorrect outcomes."""
+    first_ok_sec_wrong = first_wrong_sec_ok = 0
     for r in rows:
         a_ok = r["correct"][cond_a] is True
         b_ok = r["correct"][cond_b] is True
         if a_ok and not b_ok:
-            b += 1
+            first_ok_sec_wrong += 1
         elif b_ok and not a_ok:
-            c += 1
-    n = b + c
+            first_wrong_sec_ok += 1
+    n = first_ok_sec_wrong + first_wrong_sec_ok
     if n == 0:
         p = 1.0
     else:
-        k = min(b, c)
+        k = min(first_ok_sec_wrong, first_wrong_sec_ok)
         tail = sum(math.comb(n, i) for i in range(k + 1)) * (0.5 ** n)
         p = min(1.0, 2 * tail)
-    return {"b": b, "c": c, "discordant": n, "p_value": p}
+    return {"first_ok_sec_wrong": first_ok_sec_wrong, "first_wrong_sec_ok": first_wrong_sec_ok, "discordant": n, "p_value": p}
 
 
 def report(all_rows: dict):
@@ -135,7 +130,8 @@ def report(all_rows: dict):
             if cond == "debate":
                 continue
             m = mcnemar(rows, "debate", cond)
-            print(f"  debate vs {cond:<11} b={m['b']:<4} c={m['c']:<4} "
+            print(f"  debate vs {cond:<11} first_ok_sec_wrong={m['first_ok_sec_wrong']:<4} "
+                  f"first_wrong_sec_ok={m['first_wrong_sec_ok']:<4} "
                   f"discordant={m['discordant']:<4} p={m['p_value']:.4f}")
 
 
