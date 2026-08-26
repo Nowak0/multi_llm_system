@@ -9,6 +9,11 @@ Two jobs live here:
 """
 
 import re
+import sympy
+from sympy.parsing.sympy_parser import (
+    parse_expr, standard_transformations,
+    implicit_multiplication_application, convert_xor,
+)
 from utils import log
 
 NO_SOLUTION = "#no_solution"
@@ -99,7 +104,6 @@ def _strip_string(string: str) -> str:
     if string.startswith("."):
         string = "0" + string
     if len(string.split("=")) == 2:
-        # keep the RHS of a "x = ..." style answer
         string = string.split("=")[-1]
     string = _fix_sqrt(string)
     string = string.replace(" ", "")
@@ -113,7 +117,7 @@ def _strip_string(string: str) -> str:
 def _hendrycks_equiv(a: str, b: str) -> bool:
     try:
         return _strip_string(a) == _strip_string(b)
-    except Exception:  # noqa: BLE001 - normalisation should never crash grading
+    except Exception:
         return a == b
 
 
@@ -141,37 +145,29 @@ def _latex_to_expr(s: str) -> str:
 
 
 def _sympy_equal(a: str, b: str) -> bool:
-    try:
-        import sympy
-        from sympy.parsing.sympy_parser import (
-            parse_expr, standard_transformations,
-            implicit_multiplication_application, convert_xor,
-        )
-    except Exception:
-        return False
-
     transforms = standard_transformations + (
         implicit_multiplication_application, convert_xor,
     )
 
-    def _p(x):
-        try:
-            return parse_expr(_latex_to_expr(x), transformations=transforms, evaluate=True)
-        except Exception:
-            return None
-
-    ea, eb = _p(a), _p(b)
+    ea, eb = _p(a, transforms), _p(b, transforms)
     if ea is None or eb is None:
         return False
     try:
         if sympy.simplify(ea - eb) == 0:
             return True
-    except Exception:  # noqa: BLE001
+    except Exception:
         pass
     try:
         return abs(float(ea.evalf()) - float(eb.evalf())) < 1e-9
-    except Exception:  # noqa: BLE001
+    except Exception:
         return False
+
+
+def _p(x, transforms):
+    try:
+        return parse_expr(_latex_to_expr(x), transformations=transforms, evaluate=True)
+    except Exception:
+        return None
 
 
 def math_equiv(a, b) -> bool:
@@ -213,14 +209,14 @@ def extract_letter(pred):
 
 
 def mcq_equiv(a, b) -> bool:
-    la, lb = extract_letter(a), extract_letter(b)
-    return la is not None and la == lb
+    extracted_a, extracted_b = extract_letter(a), extract_letter(b)
+    return extracted_a is not None and extracted_a == extracted_b
 
 
 def grade_mcq(pred, gold) -> bool:
-    la = extract_letter(pred)
-    lg = extract_letter(gold) or (str(gold).strip().upper() if gold is not None else None)
-    return la is not None and lg is not None and la == lg
+    extracted_pred = extract_letter(pred)
+    extracted_gold = extract_letter(gold) or (str(gold).strip().upper() if gold is not None else None)
+    return extracted_pred is not None and extracted_gold is not None and extracted_pred == extracted_gold
 
 
 # ===========================================================================

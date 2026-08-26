@@ -36,7 +36,7 @@ def _run_conditions(record: dict) -> dict:
 
     deb = run_debate(q, domain, MODELS, rounds=ROUNDS, seed=SEED, console=CONSOLE_LOGS)
     answers["debate"] = deb["answer"]
-    answers["_debate_rounds"] = deb["rounds"]
+    answers["debate_rounds"] = deb["rounds"]
     return answers
 
 
@@ -58,6 +58,7 @@ def run_domain(domain: str, limit: int) -> list[dict]:
                        else is_correct(answers[cond], rec["gold"], domain))
                 for cond in CONDITIONS
             }
+
             row = {
                 "id": rec["id"],
                 "domain": domain,
@@ -70,6 +71,7 @@ def run_domain(domain: str, limit: int) -> list[dict]:
                     "solo_temp": SOLO_TEMPERATURE, "sc_temp": SC_TEMPERATURE,
                 },
             }
+
             f.write(json.dumps(row) + "\n")
             f.flush()
             rows.append(row)

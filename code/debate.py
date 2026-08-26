@@ -1,5 +1,6 @@
 import json
 import re
+import requests
 from utils import log
 
 from Agent import Agent
@@ -101,7 +102,6 @@ def _peers_block(solutions, self_idx):
 
 def _run_turn(model, system, user, schema, temperature, seed):
     """One model call -> parsed dict or None."""
-    import requests
     agent = Agent(model=model, role=system)
     prompt = agent.build_chat_prompt(user)
     try:
@@ -118,12 +118,36 @@ def _run_turn(model, system, user, schema, temperature, seed):
 def run_debate(question: str, domain: str, models: list[str], rounds: int = DEFAULT_ROUNDS,
                seed: int = None, console: bool = False) -> dict:
     """Run the full debate protocol for one question"""
-    answer_format = ANSWER_FORMATS[domain]
     equiv = equiv_fn(domain)
     n = len(models)
     trace = []
 
+    solutions = _run_independent_round(question, domain, models, seed, n, console)
+    trace.append(_snapshot(0, models, solutions))
+
+    agreed = _consensus([_answer_of(s) for s in solutions], equiv)
+    if agreed is not None:
+        log(console, f"Consensus on the independent round: {agreed!r}")
+        return _make_result(agreed, abstained=False, rounds=0, trace=trace)
+
+    for r in range(1, rounds + 1):
+        solutions = _run_debate_round(question, domain, models, solutions, seed, r, n, console)
+        trace.append(_snapshot(r, models, solutions))
+
+        agreed = _consensus([_answer_of(s) for s in solutions], equiv)
+        if agreed is not None:
+            log(console, f"Consensus after debate round {r}: {agreed!r}")
+            return _make_result(agreed, abstained=False, rounds=r, trace=trace)
+
+    log(console, f"No consensus after {rounds} rounds -> ABSTAIN")
+    return _make_result(ABSTAIN, abstained=True, rounds=rounds, trace=trace)
+
+
+def _run_independent_round(question, domain, models, seed, n, console):
+    """Round 0: every agent solves alone, with no visibility into peers."""
+    answer_format = ANSWER_FORMATS[domain]
     solve_system = SOLVE.format(answer_format=answer_format)
+
     solutions = []
     for i, model in enumerate(models):
         sol = _run_turn(
@@ -132,38 +156,32 @@ def run_debate(question: str, domain: str, models: list[str], rounds: int = DEFA
         )
         solutions.append(sol)
         log(console, f"[round 0] Agent {i + 1} ({model}) -> {_answer_of(sol)!r}")
-    trace.append(_snapshot(0, models, solutions))
+    return solutions
 
-    agreed = _consensus([_answer_of(s) for s in solutions], equiv)
-    if agreed is not None:
-        log(console, f"Consensus on the independent round: {agreed!r}")
-        return {"answer": agreed, "abstained": False, "rounds": 0, "trace": trace}
 
+def _run_debate_round(question, domain, models, solutions, seed, r, n, console):
+    """One debate round: every agent sees peers' current answers and may revise."""
+    answer_format = ANSWER_FORMATS[domain]
     debate_system = DEBATE.format(answer_format=answer_format)
-    for r in range(1, rounds + 1):
-        new_solutions = []
-        for i, model in enumerate(models):
-            user = (
-                f"PROBLEM:\n{question}\n\n"
-                f"CURRENT SOLUTIONS FROM ALL AGENTS:\n{_peers_block(solutions, i)}"
-            )
-            sol = _run_turn(
-                model, debate_system, user, DEBATE_SCHEMA,
-                DEBATE_TEMPERATURE, _seed_for(seed, r, i, n),
-            )
-            
-            new_solutions.append(sol if sol is not None else solutions[i])
-            log(console, f"[round {r}] Agent {i + 1} ({model}) -> {_answer_of(new_solutions[-1])!r}")
-        solutions = new_solutions
-        trace.append(_snapshot(r, models, solutions))
 
-        agreed = _consensus([_answer_of(s) for s in solutions], equiv)
-        if agreed is not None:
-            log(console, f"Consensus after debate round {r}: {agreed!r}")
-            return {"answer": agreed, "abstained": False, "rounds": r, "trace": trace}
+    new_solutions = []
+    for i, model in enumerate(models):
+        user = (
+            f"PROBLEM:\n{question}\n\n"
+            f"CURRENT SOLUTIONS FROM ALL AGENTS:\n{_peers_block(solutions, i)}"
+        )
+        sol = _run_turn(
+            model, debate_system, user, DEBATE_SCHEMA,
+            DEBATE_TEMPERATURE, _seed_for(seed, r, i, n),
+        )
+        new_solutions.append(sol if sol is not None else solutions[i])
+        log(console, f"[round {r}] Agent {i + 1} ({model}) -> {_answer_of(new_solutions[-1])!r}")
+    return new_solutions
 
-    log(console, f"No consensus after {rounds} rounds -> ABSTAIN")
-    return {"answer": ABSTAIN, "abstained": True, "rounds": rounds, "trace": trace}
+
+def _make_result(answer, abstained, rounds, trace):
+    """Build the standard return shape for run_debate."""
+    return {"answer": answer, "abstained": abstained, "rounds": rounds, "trace": trace}
 
 
 def _snapshot(round_idx, models, solutions):
