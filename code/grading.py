@@ -152,13 +152,23 @@ def _sympy_equal(a: str, b: str) -> bool:
     ea, eb = _p(a, transforms), _p(b, transforms)
     if ea is None or eb is None:
         return False
+    return _expr_equal(ea, eb)
+
+
+def _expr_equal(ea, eb) -> bool:
+    if isinstance(ea, tuple) or isinstance(eb, tuple):
+        if not (isinstance(ea, tuple) and isinstance(eb, tuple)):
+            return False
+        if len(ea) != len(eb):
+            return False
+        return all(_expr_equal(x, y) for x, y in zip(ea, eb))
     try:
         if sympy.simplify(ea - eb) == 0:
             return True
     except Exception:
         pass
     try:
-        return abs(float(ea.evalf()) - float(eb.evalf())) < 1e-9
+        return abs(complex(ea.evalf()) - complex(eb.evalf())) < 1e-9
     except Exception:
         return False
 

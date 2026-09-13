@@ -1,5 +1,6 @@
 import json
 import re
+import time
 import requests
 from utils import log
 
@@ -13,6 +14,7 @@ DEFAULT_ROUNDS = 3
 SOLVE_TEMPERATURE = 0.05
 DEBATE_TEMPERATURE = 0.1
 MAX_TOKENS = 6000
+THINK_ENABLED = True
 
 ANSWER_FORMATS = {"math": ANSWER_FORMAT_MATH, "medical": ANSWER_FORMAT_MCQ}
 
@@ -56,6 +58,15 @@ def _parse(raw: str):
         return None
 
 
+def _turn_result(parsed, response, model, elapsed):
+    return {
+        "parsed": parsed,
+        "response": response,
+        "model": model,
+        "elapsed_seconds": elapsed,
+    }
+
+
 def _seed_for(base_seed, round_idx: int, agent_idx: int, n_agents: int):
     """Deterministic per-(round, agent) seed derived from the condition's base
     seed, so a whole debate replays identically. None => let Ollama randomise."""
@@ -64,12 +75,24 @@ def _seed_for(base_seed, round_idx: int, agent_idx: int, n_agents: int):
     return base_seed + round_idx * n_agents + agent_idx
 
 
-def _answer_of(solution):
-    """The final_answer string from a parsed turn, or None."""
-    if not solution:
+def _answer_of(turn):
+    """The final_answer string from a turn result (or a raw parsed dict), or None."""
+    if not turn:
         return None
-    ans = solution.get("final_answer")
+
+    parsed = turn.get("parsed") if "parsed" in turn else turn
+    if not parsed:
+        return None
+    ans = parsed.get("final_answer")
     return None if ans is None else str(ans).strip()
+
+
+def _thought_of(turn):
+    if not turn:
+        return ""
+
+    parsed = turn.get("parsed") if "parsed" in turn else turn
+    return (parsed or {}).get("thought", "")
 
 
 def _is_answered(ans) -> bool:
@@ -92,7 +115,7 @@ def _peers_block(solutions, self_idx):
     for i, sol in enumerate(solutions):
         who = "Your previous solution" if i == self_idx else f"Agent {i + 1}"
         ans = _answer_of(sol)
-        thought = (sol or {}).get("thought", "") if sol else ""
+        thought = _thought_of(sol)
         if ans is None:
             lines.append(f"[{who}] (no valid answer produced)")
         else:
@@ -101,18 +124,20 @@ def _peers_block(solutions, self_idx):
 
 
 def _run_turn(model, system, user, schema, temperature, seed):
-    """One model call -> parsed dict or None."""
+    """One model call -> turn result dict, or None."""
     agent = Agent(model=model, role=system)
     prompt = agent.build_chat_prompt(user)
+
     try:
-        raw = agent.ollama_chat(
+        response = agent.ollama_chat(
             prompt=prompt, temperature=temperature, max_tokens=MAX_TOKENS,
-            schema=schema, seed=seed, think=False,
+            schema=schema, seed=seed, think=THINK_ENABLED,
         )
     except requests.exceptions.RequestException as e:
         print(f"Ollama request failed for {model}: {e}")
         return None
-    return _parse(raw)
+    parsed = _parse(response["content"])
+    return _turn_result(parsed, response, model, response.get("wall_time_seconds"))
 
 
 def run_debate(question: str, domain: str, models: list[str], rounds: int = DEFAULT_ROUNDS,
@@ -121,6 +146,7 @@ def run_debate(question: str, domain: str, models: list[str], rounds: int = DEFA
     equiv = equiv_fn(domain)
     n = len(models)
     trace = []
+    start = time.perf_counter()
 
     solutions = _run_independent_round(question, domain, models, seed, n, console)
     trace.append(_snapshot(0, models, solutions))
@@ -128,7 +154,7 @@ def run_debate(question: str, domain: str, models: list[str], rounds: int = DEFA
     agreed = _consensus([_answer_of(s) for s in solutions], equiv)
     if agreed is not None:
         log(console, f"Consensus on the independent round: {agreed!r}")
-        return _make_result(agreed, abstained=False, rounds=0, trace=trace)
+        return _make_result(agreed, abstained=False, rounds=0, trace=trace, elapsed=time.perf_counter() - start)
 
     for r in range(1, rounds + 1):
         solutions = _run_debate_round(question, domain, models, solutions, seed, r, n, console)
@@ -137,10 +163,10 @@ def run_debate(question: str, domain: str, models: list[str], rounds: int = DEFA
         agreed = _consensus([_answer_of(s) for s in solutions], equiv)
         if agreed is not None:
             log(console, f"Consensus after debate round {r}: {agreed!r}")
-            return _make_result(agreed, abstained=False, rounds=r, trace=trace)
+            return _make_result(agreed, abstained=False, rounds=r, trace=trace, elapsed=time.perf_counter() - start)
 
     log(console, f"No consensus after {rounds} rounds -> ABSTAIN")
-    return _make_result(ABSTAIN, abstained=True, rounds=rounds, trace=trace)
+    return _make_result(ABSTAIN, abstained=True, rounds=rounds, trace=trace, elapsed=time.perf_counter() - start)
 
 
 def _run_independent_round(question, domain, models, seed, n, console):
@@ -152,7 +178,7 @@ def _run_independent_round(question, domain, models, seed, n, console):
     for i, model in enumerate(models):
         sol = _run_turn(
             model, solve_system, question, SOLVE_SCHEMA,
-            SOLVE_TEMPERATURE, _seed_for(seed, 0, i, n),
+            SOLVE_TEMPERATURE, _seed_for(seed, 0, i, n)
         )
         solutions.append(sol)
         log(console, f"[round 0] Agent {i + 1} ({model}) -> {_answer_of(sol)!r}")
@@ -179,20 +205,28 @@ def _run_debate_round(question, domain, models, solutions, seed, r, n, console):
     return new_solutions
 
 
-def _make_result(answer, abstained, rounds, trace):
+def _make_result(answer, abstained, rounds, trace, elapsed):
     """Build the standard return shape for run_debate."""
-    return {"answer": answer, "abstained": abstained, "rounds": rounds, "trace": trace}
+    return {
+        "answer": answer,
+        "abstained": abstained,
+        "rounds": rounds,
+        "trace": trace,
+        "elapsed_seconds": elapsed,
+    }
 
 
 def _snapshot(round_idx, models, solutions):
-    """Compact, serialisable record of a round for the trace/JSONL log."""
+    """Full, serialisable record of a round for the trace/JSONL log."""
     return {
         "round": round_idx,
         "solutions": [
             {
                 "model": models[i],
-                "thought": (sol or {}).get("thought", "") if sol else "",
+                "thought": _thought_of(sol),
                 "final_answer": _answer_of(sol),
+                "elapsed_seconds": (sol or {}).get("elapsed_seconds"),
+                "response": (sol or {}).get("response"),
             }
             for i, sol in enumerate(solutions)
         ],
