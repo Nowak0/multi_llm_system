@@ -1,0 +1,38 @@
+\chapter{Wstęp i cel pracy}
+
+Aktualnie duże model językowe (ang. LLM, Large Language Model) wykorzystywane są w różnych obszarach obszarach życia. Wysokie zainteresowanie sztuczną inteligencją sprzyja rozwojowi tej dziedziny. Skutkuje to pojawianiem się nowych możliwości wykorzystania technologii przetwarzania języka naturalnego oraz zrewolucjonizowaniem sposobu, w jakim systemy informatyczne przetwarzają i analizują dane nieustrukturyzowane. 
+
+W miarę jak rosną oczekiwania wobec systemów opartych na LLM, pojedynczy model może okazać się niewystarczający. Typowymi ograniczeniami są kontekst, koszt obliczeniowy pojedynczego zapytania czy podatność na błędy wynikające z braku weryfikacji własnych odpowiedzi. Naturalną odpowiedzią na te ograniczenia jest koncepcja architektur wielomodelowych, w których kilka instancji LLM współpracuje ze sobą.
+
+Podejścia do organizacji współpracy modeli są różne. Często inspirowane są one istniejącymi systemami występującymi w przyrodzie lub życiu codziennym. Ciekawym podejściem wydaje się podejście umysłu rojowego (ang. hive mind).
+
+\section{Motywacja}
+
+Motywacją do realizacji projektu jest rosnące zainteresowanie sztuczną inteligencją, a w szczególności dużymi modelami językowymi oraz wykorzystaniem ich możliwości. Ciekawym zagadnieniem jest zbadanie wpływu współpracy wielu modeli na jakość odpowiedzi.
+
+\subsection{Dynamiczny rozwój dziedziny}
+
+W ciągu ostatnich dekad można było zauważyć dynamiczny postęp w obszarze sztucznej inteligencji (SI, ang. Artificial Intelligence, AI). Rozwój tej dziedziny doprowadził do znacznego zwiększenia liczby prowadzonych na całym świecie badań, co znajduje odzwierciedlenie między innymi w rosnącej liczbie cytowań publikacji poświęconych tej tematyce. Z przeprowadzonych analiz bibliometrycznych wynika, że w latach 2012–2022 liczba publikacji dotyczących sztucznej inteligencji oraz Big Data rosła wykładniczo, przy czym szczególnie wyraźne przyspieszenie tego trendu nastąpiło od 2019 roku. Rozwiązania oparte na SI znalazły zastosowanie w wielu różnych obszarach, między innymi w medycynie, edukacji, biznesie i zarządzaniu, usługach rządowych (inteligentne miasta), finansach (prognozowanie i analiza) [1], a także w turystyce oraz sektorze rozrywkowym.
+
+Jedną z dziedzin rozwijających się w ramach sztucznej inteligencji jest przetwarzanie języka naturalnego (ang. Natural Language Processing, NLP). Jej głównym zadaniem jest umożliwienie komputerom pracy z językiem używanym przez człowieka poprzez jego odpowiednie przekształcanie i interpretowanie. Pozwala to na automatyczną analizę, generowanie oraz przetwarzanie treści tekstowych. Istotnym elementem rozwoju NLP stały się również duże modele językowe (LLM), których możliwości w ciągu ostatnich lat znacząco wzrosły. Modele te ewoluowały z pasywnych systemów przetwarzania tekstu w aktywne podmioty (agenty AI) zdolne do autonomicznego planowania, rozumowania i wchodzenia w interakcje ze środowiskiem [2]. Ich popularność gwałtownie zwiększyła się w listopadzie 2022 roku, kiedy firma OpenAI udostępniła model ChatGPT-3.5. Narzędzie to w bardzo krótkim czasie zdobyło ogromną liczbę użytkowników - w nieco ponad dwa miesiące przekroczyło próg stu milionów użytkowników.
+
+Rozwój dużych modeli językowych znajduje zastosowanie również w codziennym pozyskiwaniu informacji i rozwiązywaniu różnego rodzaju problemów. Generatywna sztuczna inteligencja (GenAI) może być wykorzystywana między innymi do wspomagania użytkowników w rozwiązywaniu zadań matematycznych, wyjaśniania zagadnień naukowych czy udzielania odpowiedzi na pytania związane ze zdrowiem i medycyną. Odpowiednio sformułowane zapytanie pozwala modelowi nie tylko przedstawić wynik, ale również wyjaśnić sposób jego uzyskania i dostosować poziom odpowiedzi do potrzeb użytkownika. Podobnie jak w przypadku innych zastosowań modeli językowych, istotnym elementem jest sposób formułowania promptów. Zbyt ogólne, nieprecyzyjne lub pozbawione odpowiedniego kontekstu polecenie może prowadzić do wygenerowania odpowiedzi niepełnej, błędnej lub niedopasowanej do oczekiwań użytkownika. Ponadto, aby ograniczyć zjawisko halucynacji LLM, stosuje się wielowarstwowe mechanizmy obronne, monitorowanie przepływu pracy (Workflow Monitoring) oraz generowanie ustrukturyzowanych odpowiedzi (JSON), co pozwala na lepszą kalibrację pewności modelu [1]. Jest to szczególnie istotne w przypadku dziedzin wymagających wysokiej dokładności, takich jak matematyka czy medycyna, gdzie odpowiedzi generowane przez modele powinny być traktowane jako forma wsparcia, a nie jako bezwzględnie wiarygodne źródło informacji.
+
+\subsection{Nowe możliwości}
+
+Dynamiczny rozwój sztucznej inteligencji oraz metod przetwarzania języka naturalnego przyczynił się do powstania nowych sposobów wykorzystania komputerów w codziennych zadaniach. Szczególne znaczenie mają tutaj generatywna sztuczna inteligencja oraz duże modele językowe, które ewoluowały z pasywnych systemów odpowiedzi w autonomiczne agenty AI. Umożliwiają one nie tylko uzyskiwanie informacji, ale również samodzielne korzystanie z zewnętrznych narzędzi, planowanie wieloetapowych zadań i interakcję ze środowiskiem w celu realizacji złożonych celów [3]. Rozwiązania te mogą być wykorzystywane między innymi do wspomagania nauki, rozwiązywania zadań matematycznych, wyjaśniania zagadnień z różnych dziedzin czy udzielania odpowiedzi na pytania wymagające analizy dostarczonych informacji.
+
+\subsubsection{Duże modele językowe}
+
+Duże modele językowe (ang. Large Language Models, LLM) w ostatnich latach stały się jednym z najważniejszych obszarów rozwoju sztucznej inteligencji. Jeszcze stosunkowo niedawno bezpośrednia komunikacja z komputerem za pomocą języka naturalnego wymagała specjalistycznych rozwiązań, natomiast obecnie użytkownik może formułować pytania i polecenia w sposób zbliżony do rozmowy z drugą osobą. Dzięki temu modele językowe mogą pełnić funkcję narzędzia wspomagającego, a obecnie coraz częściej tworzą złożone systemy wieloagentowe (ang. Large Language Model-based Multi-Agent Systems, MASs)[2,3]. W takich strukturach wyspecjalizowane jednostki (np. agent-programista, agent-tester) współpracują ze sobą, co pozwala na naturalny podział pracy, większą odporność na błędy oraz rozwiązywanie problemów o stopniu złożoności przekraczającym możliwości pojedynczego modelu. Przykładowe zastosowania obejmują generowanie i analizowanie tekstu, tłumaczenie treści, tworzenie podsumowań, odpowiadanie na pytania, a także pomoc w rozwiązywaniu problemów matematycznych i logicznych.
+
+Istotną zaletą części dostępnych modeli językowych jest ich otwarty charakter (ang. open-source software), który umożliwia wykorzystanie ich we własnych aplikacjach. Platformy takie jak Hugging Face udostępniają szeroki wybór modeli, które można dostosować do określonych zastosowań i zintegrować z tworzonym oprogramowaniem. Pozwala to między innymi na budowanie systemów wykorzystujących modele językowe do analizy pytań użytkownika oraz generowania odpowiedzi bez konieczności tworzenia własnego modelu od podstaw.
+
+Wykorzystanie modeli uruchamianych lokalnie daje również możliwość ograniczenia konieczności przesyłania danych do zewnętrznych usług. Przy odpowiednio wydajnej infrastrukturze model może zostać uruchomiony bezpośrednio na komputerze użytkownika, a komunikacja z nim może odbywać się za pośrednictwem lokalnego interfejsu API. Takie rozwiązanie może mieć szczególne znaczenie w przypadku aplikacji przetwarzających informacje, dla których istotne są prywatność i bezpieczeństwo. Lokalna obsługa modelu pozwala bowiem zachować dane w obrębie własnej infrastruktury, ograniczając ryzyko ich nieautoryzowanego udostępnienia.
+
+\section{Cel pracy}
+
+
+
+\section{Struktura pracy}
+
