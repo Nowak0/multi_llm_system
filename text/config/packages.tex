@@ -10,7 +10,7 @@
 ]{geometry}
 
 \usepackage{graphicx}
-\usepackage{booktabs}
+\usepackage[table]{xcolor}
 \usepackage{amsmath}
 \usepackage{amssymb}
 
@@ -21,10 +21,20 @@
 
 \usepackage[
     backend=biber,
-    style=apa
+    style=ieee,
+    url=true,
+    doi=false,
+    isbn=false,
+    eprint=false,
+    maxnames=99,
+    giveninits=true
 ]{biblatex}
-
+\DeclareDelimFormat{multinamedelim}{\addcomma\space}
+\DeclareDelimFormat{finalnamedelim}{\addcomma\space}
+\DeclareDelimFormat{andothersdelim}{\addcomma\space}
 \addbibresource{bibliography/references.bib}
+
+\usepackage{glossaries}
 
 \setmainfont{Times New Roman}
 \usepackage{indentfirst}

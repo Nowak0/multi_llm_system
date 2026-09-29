@@ -3,11 +3,18 @@
 \input{config/packages}
 \input{config/commands}
 \input{config/metadata}
+\input{config/glossaery}
 
 \begin{document}
 
 \maketitle
+
+\input{frontmatter/streszczenie.tex}
+\input{frontmatter/abstract.tex}
+
 \tableofcontents
+
+\input{frontmatter/wykaz-skrotow.tex}
 
 \include{chapters/1-wstep-i-cel-pracy}
 \include{chapters/2-wprowadzenie-do-dziedziny}
@@ -15,6 +22,9 @@
 \include{chapters/4-projekt-systemu}
 \include{chapters/5-badania-i-analiza-wynikow}
 \include{chapters/6-podsumowanie}
+
+\input{backmatter/wykaz-tabel.tex}
+\input{backmatter/wykaz-rysunkow.tex}
 
 \printbibliography
 
