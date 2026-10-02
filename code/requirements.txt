@@ -1,1 +1,8 @@
 requests
+huggingface_hub
+pyarrow
+pandas
+fastparquet
+# New for the debate experiment:
+datasets        # HuggingFace dataset loading (MATH-500, MedMCQA)
+sympy           # symbolic/numeric math answer equivalence (Hendrycks is_equiv grader)
