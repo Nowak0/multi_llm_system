@@ -1,0 +1,41 @@
+\usepackage{fontspec}
+\usepackage[polish]{babel}
+
+\usepackage[
+    a4paper,
+    left=3cm,
+    right=2cm,
+    top=2.5cm,
+    bottom=2.5cm
+]{geometry}
+
+\usepackage{graphicx}
+\usepackage[table]{xcolor}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage[hidelinks]{hyperref}
+\usepackage{cleveref}
+
+\usepackage{microtype}
+
+\usepackage[
+    backend=biber,
+    style=ieee,
+    url=true,
+    doi=false,
+    isbn=false,
+    eprint=false,
+    maxnames=99,
+    giveninits=true
+]{biblatex}
+\DeclareDelimFormat{multinamedelim}{\addcomma\space}
+\DeclareDelimFormat{finalnamedelim}{\addcomma\space}
+\DeclareDelimFormat{andothersdelim}{\addcomma\space}
+\addbibresource{bibliography/references.bib}
+
+\usepackage{glossaries}
+
+\setmainfont{Times New Roman}
+\usepackage{indentfirst}
+\setlength{\parindent}{1.25cm}

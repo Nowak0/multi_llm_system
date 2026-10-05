@@ -1,0 +1,41 @@
+\chapter{Technologie i narzędzia}
+
+Istotny był wybór odpowiednich technologii i narzędzi. Ważne było aby system był wydajny i jego poszczególne komponenty łatwe do wdrożenia dzięki odpowiednim udokumentowaniu. Celem tego rozdziału jest przedstawienie użytych w projekcie technologii oraz uzasadnienie ich wyboru.
+
+\section{Wybrane języki programowania}
+
+Do realizacji projektu zdecydowano się na język programowania Python, który dzięki swojej prostocie, szybkości implementacji oraz sporej liczbie bibliotek, był najlepszym wyborem z pośród innych języków. Dodatkowym atutem jest jego popularność pośród istniejących już rozwiązań uczenia maszynowego. Stanowiło to dodatkową inspirację podczas projektowania systemu.
+
+\section{Biblioteki}
+
+W projekcie zostały wykorzystane różne biblioteki, które pozwoliły przyspieszyć czas implementacji, zmniejszając potrzebę pisania kodu od podstawy oraz utrzymania wysokiej jakości rozwiązań problemów programistycznych.
+
+- json
+- random
+- re
+- requests
+- subprocess
+
+\section{Wybrane modele językowe}
+
+Po szeregu różnych testów zdecydowano się na wykorzystanie modeli
+
+\section{Narzędzia}
+
+\subsubsection{Git}
+
+Git to narzędzie służące do zarządzania wersjami projektu, umożliwiające monitorowanie wprowadzanych zmian w kodzie oraz równoczesną pracę wielu osób nad tym samym projektem.
+
+W projekcie pełnił funkcję podstawowego systemu kontroli wersji. Każdy członek zespołu pracował na oddzielnej gałęzi (ang. branch), a po zakończeniu prac wprowadzone zmiany były łączone z główną gałęzią projektu (ang. main branch). Takie podejście ułatwiało współpracę, ograniczało ryzyko występowania konfliktów oraz pozwalało na zachowanie uporządkowanej, liniowej historii zmian.
+
+\subsubsection{GitHub}
+
+GitHub to platforma wykorzystująca system Git, która pozwala na przechowywanie oraz zarządzanie repozytoriami znajdującymi się na zdalnych serwerach. Oprócz podstawowych funkcji oferuje również możliwość wzajemnego przeglądania i weryfikowania kodu przez członków zespołu, a także automatycznego uruchamiania procesów sprawdzających poprawność projektu, takich jak wykonywanie testów czy weryfikacja kompilacji kodu w ramach CI (ang. Continuous Integration). Funkcja przeglądu kodu pozwalała zespołowi na bieżąco kontrolować jakość wprowadzanych zmian, wykrywać potencjalne błędy oraz utrzymywać kod w odpowiednim stanie.
+
+\subsubsection{Ollama API}
+
+Ollama to oprogramowanie umożliwiające lokalne uruchamianie oraz zarządzanie wybranymi modelami językowymi typu LLM (ang. Large Language Model).
+
+W projekcie zostało wykorzystane do obsługi modeli działających bezpośrednio na lokalnej infrastrukturze, co pozwalało na korzystanie z ich możliwości bez konieczności przesyłania danych do zewnętrznych usług. Komunikacja pomiędzy aplikacją a uruchomionymi modelami odbywała się za pośrednictwem interfejsu API, umożliwiając przesyłanie zapytań oraz odbieranie wygenerowanych odpowiedzi.
+
+\section{Wymagania sprzętowe}
