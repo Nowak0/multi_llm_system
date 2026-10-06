@@ -1,6 +1,37 @@
 % !TEX root = ../main.tex
 \chapter{Wprowadzenie do dziedziny}
 
+Niniejszy rozdział wprowadza w dziedzinę, w której osadzona jest praca. Najpierw przedstawia generatywną sztuczną inteligencję: jej definicję, zasadę działania, zastosowania oraz ograniczenia. Następnie omawia duże modele językowe, czyli klasę modeli generatywnych, na której opiera się system MLLMS. Wprowadzone pojęcia są podstawą dla kolejnych rozdziałów, które opisują technologie, projekt systemu i wyniki badań.
+
 \section{Generatywna sztuczna inteligencja}
 
+\subsection{Definicja i miejsce generatywnej sztucznej inteligencji}
+
+Sztuczna inteligencja (SI) obejmuje metody, które pozwalają komputerom wykonywać zadania wymagające zwykle ludzkiej inteligencji. Jej istotną częścią jest uczenie maszynowe (ang. Machine Learning, ML), w którym zależności nie są programowane wprost, lecz wyznaczane przez algorytm na podstawie danych. Szczególnym przypadkiem uczenia maszynowego są sztuczne sieci neuronowe (ang. Artificial Neural Networks), czyli modele zbudowane z warstw prostych jednostek obliczeniowych, których parametry dobierane są w procesie uczenia. Sieci składające się z wielu warstw określa się mianem uczenia głębokiego (ang. Deep Learning, DL). Umożliwiło ono modelowanie bardzo złożonych zależności w danych, takich jak tekst, obraz czy dźwięk.
+
+Na uczeniu głębokim opiera się współczesna generatywna sztuczna inteligencja (ang. Generative Artificial Intelligence, GenAI). Według \cite{feuerriegel_generative_ai} są to techniki obliczeniowe zdolne do generowania pozornie nowych, sensownych treści, takich jak tekst, obrazy czy dźwięk, na podstawie danych treningowych. Modele generatywne nie ograniczają się więc do klasyfikowania danych wejściowych lub przewidywania pojedynczej wartości, lecz tworzą nowe dane, przypominające te, na których były uczone. Wśród nich szczególne miejsce zajmują duże modele językowe, opisane w sekcji \ref{sec:llm}.
+
+\subsection{Zasada działania i zastosowania}
+
+Modele generatywne uczą się rozkładu prawdopodobieństwa danych treningowych $p(x)$, a w wersji warunkowej rozkładu $p(x \mid c)$, w którym $c$ oznacza kontekst, na przykład polecenie użytkownika (ang. prompt). Generowanie polega na losowaniu (ang. sampling) kolejnych elementów z tego rozkładu. W modelach językowych elementami są tokeny, czyli fragmenty tekstu, a odpowiedź powstaje token po tokenie: każdy kolejny wybierany jest na podstawie zapytania i dotychczas wygenerowanego tekstu. Stopień losowości reguluje parametr zwany temperaturą (ang. temperature). Dla tego samego zapytania model może więc zwrócić różne odpowiedzi, a ich powtarzalność zapewnia dopiero ustalone ziarno generatora liczb losowych (ang. seed).
+
+Modele dyskryminatywne uczą się natomiast przypisywać dane wejściowe do kategorii, czyli modelują $p(y \mid x)$, gdzie $y$ jest etykietą \cite{ng_jordan_discriminative_generative}. Typowym przykładem jest filtr spamu rozstrzygający, czy wiadomość jest niechcianą pocztą. Pytanie wielokrotnego wyboru wygląda jak zadanie klasyfikacji, jednak model generatywny nie wybiera klasy, lecz generuje tekst, w którym znajduje się litera odpowiedzi. Jego odpowiedź jest więc wynikiem losowania, a nie deterministycznej decyzji klasyfikatora.
+
+Treści tworzone przez modele generatywne mogą mieć różną postać. Według \cite{feuerriegel_generative_ai} są to między innymi tekst, obrazy i wideo, mowa i muzyka oraz kod źródłowy. Niniejsza praca dotyczy wyłącznie tekstu.
+
+Generatywna sztuczna inteligencja jest wykorzystywana w edukacji, nauce, medycynie, biznesie i codziennej pracy z informacją, między innymi do odpowiadania na pytania, streszczania i tłumaczenia tekstów, wyjaśniania zagadnień oraz pomocy w programowaniu. Szczególnie istotne dla tej pracy są zadania wymagające rozumowania i wiedzy specjalistycznej, takie jak rozwiązywanie zadań matematycznych i odpowiadanie na pytania medyczne, na których oparto badania opisane w dalszej części pracy. W tych dziedzinach wiarygodność odpowiedzi ma duże znaczenie, co prowadzi do ograniczeń omówionych w następnej podsekcji.
+
+\subsection{Ograniczenia generatywnej sztucznej inteligencji}
+
+Mimo szerokich możliwości generatywna sztuczna inteligencja ma ograniczenia, które wynikają bezpośrednio ze sposobu jej działania.
+
+Najbardziej znanym z nich są halucynacje (ang. hallucinations), czyli generowanie treści brzmiących wiarygodnie, lecz nieprawdziwych. Wyróżnia się wśród nich halucynacje dotyczące faktów, gdy treść jest sprzeczna z weryfikowalną wiedzą o świecie, oraz halucynacje dotyczące wierności, gdy odpowiedź odbiega od polecenia lub kontekstu \cite{llm_hallucination_survey}. Ponieważ model losuje tokeny zgodnie z wyuczonym rozkładem i nie sprawdza prawdziwości treści, odpowiedź błędna wygląda tak samo jak poprawna, a przekonujący ton utrudnia wykrycie błędu. Ma to duże znaczenie w dziedzinach takich jak medycyna, w których błędna informacja może prowadzić do szkody.
+
+Z tym wiąże się brak samoweryfikacji. Model nie posiada wbudowanego mechanizmu sprawdzania własnej odpowiedzi, a poproszenie go o ponowną ocenę własnego rozumowania nie musi prowadzić do poprawy. Pojedynczy model jest więc jednocześnie autorem i jedynym recenzentem odpowiedzi.
+
+Kolejnym ograniczeniem jest wrażliwość na sformułowanie polecenia. Słaby prompt, czyli ogólnikowy lub pozbawiony kontekstu, zwykle daje odpowiedź niepełną lub błędną, natomiast dobrze zbudowany, precyzujący zadanie i oczekiwany format, poprawia wynik. Nawet drobne zmiany formy polecenia, niezmieniające jego sensu, mogą zmienić odpowiedź.
+
+Ograniczenia te, w szczególności brak samoweryfikacji, stanowią punkt wyjścia dla koncepcji współpracy wielu modeli, opisanej w kolejnych rozdziałach.
+
 \section{Duże modele językowe}
+\label{sec:llm}
