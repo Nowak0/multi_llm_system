@@ -19,7 +19,60 @@ W projekcie zostały wykorzystane różne biblioteki, które pozwoliły przyspie
 
 \section{Wybrane modele językowe}
 
-Po szeregu różnych testów zdecydowano się na wykorzystanie modeli
+Dobór modeli podyktowany był założeniami projektu. System opiera się na współpracy dwóch modeli. Jej wpływ na jakość odpowiedzi podlega badaniu, dlatego potrzebne były modele pochodzące od różnych twórców, a nie dwie instancje tego samego modelu. Ponadto modele musiały z przyzwoitą dokładnością rozwiązywać zadania z obu dziedzin, na których oparto badania, czyli matematyki i medycyny. Kolejnym wymogiem było, aby były to modele o otwartych wagach (ang. open-weight), dostępne w bibliotece Ollamy i możliwe do uruchomienia lokalnie. Ostatnim kryterium było ograniczenie sprzętowe -- oba modele musiały mieścić się w pamięci operacyjnej komputera, na którym prowadzono badania (szczegóły opisano w sekcji~\ref{sec:wymagania-sprzetowe}). W ramach tego ograniczenia wybierano modele o możliwie największej liczbie parametrów, ponieważ jest ona jednym z czynników wpływających na jakość generowanych odpowiedzi.
+
+Tabela~\ref{tab:kandydaci_modeli} zestawia modele rozważane na etapie wyboru. Wytłuszczono modele użyte w projekcie.
+
+\begin{table}[H]
+    \centering
+    \caption{Modele rozważane w projekcie}
+    \label{tab:kandydaci_modeli}
+
+    \small
+    \setlength{\tabcolsep}{7pt}
+    \renewcommand{\arraystretch}{1.35}
+    \begin{tabular}{|p{3.8cm}|p{2.3cm}|p{2.3cm}|>{\raggedright\arraybackslash}p{5.3cm}|}
+        \hline
+        \rowcolor{gray!20}
+        \textbf{Model} & \textbf{Twórca} & \textbf{Parametry} & \textbf{Decyzja i powód} \\ \hline
+        \textbf{gemma4:12b} &
+        \textbf{Google} &
+        \textbf{12 mld} &
+        \textbf{Wybrany.} Najnowsza generacja rodziny Gemma, dobra jakość na zadaniach obu dziedzin, mieści się w limicie pamięci. \\ \hline
+        \textbf{qwen3.5:9b} &
+        \textbf{Alibaba} &
+        \textbf{9 mld} &
+        \textbf{Wybrany.} Najnowsza generacja rodziny Qwen, dobra jakość na zadaniach obu dziedzin, inna rodzina niż Gemma. \\ \hline
+        llama3.1:8b &
+        Meta &
+        8 mld &
+        Odrzucony. Wyraźnie słabsza jakość odpowiedzi. \\ \hline
+        qwen2.5:7b &
+        Alibaba &
+        7 mld &
+        Odrzucony. Jakość przeciętna oraz starsza generacja względem Qwen3.5. \\ \hline
+        gemma2:9b &
+        Google &
+        9 mld &
+        Odrzucony. Jakość przeciętna oraz starsza generacja względem Gemma 4. \\ \hline
+        gemma2:2b &
+        Google &
+        2 mld &
+        Odrzucony. Częstsze błędy i trudności z zachowaniem wymaganego formatu odpowiedzi. \\ \hline
+        phi4-mini &
+        Microsoft &
+        3,8 mld &
+        Odrzucony. Częstsze błędy i trudności z zachowaniem wymaganego formatu odpowiedzi. \\ \hline
+        deepseek-r1:14b &
+        DeepSeek-AI &
+        14 mld &
+        Odrzucony. Bardzo dobre wyniki w matematyce, zbliżone do wybranych modeli, ale wyższe zużycie pamięci. \\ \hline
+    \end{tabular}
+\end{table}
+
+Wybrane zostały modele gemma4:12b (Google) oraz qwen3.5:9b (Alibaba). Pochodzą od różnych twórców i należą do różnych rodzin, co pozwala na zróżnicowane odpowiedzi i rozumowanie. Mają przy tym zbliżony rozmiar, dzięki czemu ewentualne różnice w wynikach nie wynikają wyłącznie z liczby parametrów. Oba reprezentowały najnowszą generację swoich rodzin w momencie wyboru.
+
+Wybór opierał się na wstępnych próbach przeprowadzonych na działającej aplikacji, a nie na systematycznym porównaniu. Jakość wybranych modeli zbadano w rozdziale~\ref{chap:badania-i-analiza}.
 
 \section{Narzędzia}
 
@@ -40,3 +93,4 @@ Ollama to oprogramowanie umożliwiające lokalne uruchamianie oraz zarządzanie 
 W projekcie zostało wykorzystane do obsługi modeli działających bezpośrednio na lokalnej infrastrukturze, co pozwalało na korzystanie z ich możliwości bez konieczności przesyłania danych do zewnętrznych usług. Komunikacja pomiędzy aplikacją a uruchomionymi modelami odbywała się za pośrednictwem interfejsu API, umożliwiając przesyłanie zapytań oraz odbieranie wygenerowanych odpowiedzi.
 
 \section{Wymagania sprzętowe}
+\label{sec:wymagania-sprzetowe}
