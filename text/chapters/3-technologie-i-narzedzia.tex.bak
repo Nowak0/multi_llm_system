@@ -94,26 +94,3 @@ W projekcie zostało wykorzystane do obsługi modeli działających bezpośredni
 
 \section{Wymagania sprzętowe}
 \label{sec:wymagania-sprzetowe}
-
-Badania prowadzono na komputerze MacBook Pro z procesorem Apple M4 Pro i 24~GB pamięci operacyjnej. Pamięć ta jest zunifikowana (współdzielona przez procesor i układ graficzny). Model uruchomiony na GPU zajmuje zatem te same 24~GB, z których korzystają system operacyjny i pozostałe programy.
-
-Model językowy musi w całości mieścić się w pamięci na czas generowania odpowiedzi. Główną część tej pamięci zajmują wagi, czyli parametry modelu. W niekwantyzowanej wersji bf16, czyli 16-bitowej, według biblioteki Ollamy zajmowałyby 24~GB dla modelu gemma4:12b \cite{ollama_library_gemma4} i 19~GB dla qwen3.5:9b \cite{ollama_library_qwen35}. Pierwszy z nich zająłby więc całą pamięć komputera. Problem rozwiązuje kwantyzacja, czyli zapis wag z mniejszą liczbą bitów kosztem niewielkiej straty dokładności, co zmniejsza zapotrzebowanie na pamięć. Oba użyte modele mają kwantyzację Q4\_K\_M (kwantyzacja czterobitowa). Tabela~\ref{tab:zasoby_modeli} zestawia parametry modeli i zajmowane przez nie zasoby.
-
-\begin{table}[H]
-    \centering
-    \caption{Zasoby zajmowane przez użyte modele}
-    \label{tab:zasoby_modeli}
-    \small
-    \renewcommand{\arraystretch}{1.35}
-    \begin{tabular}{|l|c|c|c|c|c|}
-        \hline
-        \rowcolor{gray!20}
-        \textbf{Model} & \textbf{Parametry} & \textbf{Kwantyzacja} & \textbf{Dysk} & \textbf{Pamięć w działaniu} & \textbf{Procesor} \\ \hline
-        gemma4:12b & 11,9 mld & Q4\_K\_M & 7,6~GB & 8,1~GB & 100\% GPU \\ \hline
-        qwen3.5:9b & 9,7 mld & Q4\_K\_M & 6,6~GB & 5,5~GB & 100\% GPU \\ \hline
-    \end{tabular}
-\end{table}
-
-Obie wartości zajętej pamięci pochodzą z polecenia \texttt{ollama ps}.
-
-Ollama domyślnie utrzymuje model w pamięci przez 5 minut od ostatniego użycia \cite{ollama_faq} i może mieć załadowanych kilka modeli jednocześnie, jeśli mieszczą się w dostępnej pamięci \cite{ollama_faq}. W systemie modele biorące udział w debacie są wywoływane kolejno, a polecenie \texttt{ollama stop} wykonywane jest po zakończeniu całego eksperymentu. Podczas debaty obu modeli możliwa jest zatem obecność obu w pamięci, a ich łączne zapotrzebowanie, równe 13,6~GB, mieści się w dostępnych 24~GB.
