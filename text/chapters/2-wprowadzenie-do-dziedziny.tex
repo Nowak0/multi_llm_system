@@ -34,4 +34,48 @@ Kolejnym ograniczeniem jest wrażliwość na sformułowanie polecenia. Słaby pr
 Ograniczenia te, w szczególności brak samoweryfikacji, stanowią punkt wyjścia dla koncepcji współpracy wielu modeli, opisanej w kolejnych rozdziałach.
 
 \section{Duże modele językowe}
+
+\subsection{Definicja i architektura}
+
+Duże modele językowe to nic innego jak sieci neuronowe o bardzo dużej liczbie parametrów, trenowane na ogromnych zbiorach tekstów. Opierają się one na architekturze Transformer \cite{attention_is_all_you_need}, która umożliwia efektywne modelowanie zależności w długich sekwencjach. Dzięki temu mogą one rozpoznawać i interpretować złożone teksty. Przed ich pojawieniem się, do tego typu zadań stosowano rekurencyjne sieci neuronowe (RNN \cite{fudamentals_of_rnn_and_lstm_network}), które zaczęły mieć trudności wraz z zwiększeniem modeli i długości sekwencji. Przez potrzebę wykonywania sekwencyjnych obliczeń były one mało efektywne.
+
+Pojawienie się obecnych modeli uznaje się za wyraźny przełom w przetwarzaniu języka naturalnego (NLP) i w całej dziedzinie sztucznej inteligencji (SI)\cite{ma_collaboration}. Odpowiedzialna za to jest wcześniej wspomniana architektura Transformer. Opublikowana w 2017 roku praca "Attention Is All You Need" \cite{attention_is_all_you_need} wprowadziła mechanizm samo-uwagi (ang. self-attention), który pozwala modelom dynamicznie ważyć znaczenie poszczególnych słów w kontekście całej sekwencji. Poza tym architektura ta umożliwia równoległe przetwarzanie danych, co znacząco zwiększa efektywność treningu i wnioskowania w porównaniu do wcześniejszych podejść opartych na RNN. Od tego momentu zaczęto tworzyć coraz to większe modele. Liczba parametrów współczesnych modeli wynosi miliardy, a w największych przypadkach sięga bilionów ($10^{12}$). Przełomem okazały się rodziny modeli takie jak GPT, LLaMA i Gemini, które pokazały, że wzrost rozmiaru, ilości danych i mocy obliczeniowej przekłada się na jakość działania \cite{ma_collaboration}.
+
+Skala ta przynosi też zjawisko określane jako zdolności emergentne (ang. emergent abilities). Po przekroczeniu pewnego progu liczby parametrów i mocy obliczeniowej model zaczyna wykonywać zadania, do których nie był wprost trenowany. Przykładem może być wnioskowanie przez analogię czy uczenie zero-shot, czyli rozwiązywanie zadania bez przykładów w poleceniu \cite{ma_collaboration}. Poniżej tego progu takich umiejętności nie obserwuje się. Właśnie ta cecha, a nie sam rozmiar, odróżnia duże modele językowe od wcześniejszych modeli statystycznych i neuronowych.
+
+\subsection{Uczenie dużych modeli językowych}
+
+Modele bazowe uczą się na tekstach pozbawionych jakiejkolwiek struktury, a ich zadanie jest jedno: odgadnąć kolejne słowo, znając to, co padło wcześniej. Taki trening wystarcza, by model nauczył się budować zdania poprawne pod względem składni. Matematycznie opisuje się to jako prawdopodobieństwo warunkowe. W każdym kroku model wybiera słowo, które w danym kontekście jest najbardziej prawdopodobne:
+\[
+w_t = \arg\max_{w} P(w \mid w_1, w_2, \dots, w_{t-1})
+\]
+Jakość przewidywań mierzy funkcja straty, którą w trakcie uczenia minimalizujemy:
+\[
+L = −\sum_{t=1}^{T} \log P(w_t \mid w_1, w_2, \dots, w_{t-1})
+\]
+
+W efekcie sieć przyswaja zasady gramatyki i ogólną budowę języka. Na tak przygotowanym modelu wykonuje się potem dostrajanie pod konkretne zastosowania. Jednym z nich jest wykonywanie poleceń wydawanych przez użytkownika. Po odpowiednim sformułowaniu prompta taki model potrafi przetłumaczyć tekst, odpowiedzieć w narzuconym formacie albo przyjąć wskazaną rolę. Dwie ostatnie umiejętności wykorzystano w tej pracy.
+
+Dane treningowe pochodzą przeważnie z internetu i zostały napisane przez ludzi. Stąd bierze się przypuszczenie, że modele przejmują również część wzorców, według których ludzie podejmują decyzje.
+
+\subsection{Sterowanie, wnioskowanie i wyzwania wdrożeniowe}
+
+\subsubsection{Inżynieria promptów}
+
+Zachowanie dużego modelu językowego można w znacznej mierze ukierunkować bez zmiany jego wag. Zajmuje się tym inżynieria promptów (ang. prompt engineering): dobór instrukcji, kontekstu, formatu odpowiedzi i przykładów tak, by model dał wynik zgodny z oczekiwaniami. Kosztuje to znacznie mniej niż ponowne trenowanie lub dostrajanie modelu, bo wymaga tylko zmiany tekstu wejściowego. Dlatego prompting jest zwykle pierwszym narzędziem, po które sięga się przy dopasowywaniu modelu do konkretnego zadania. 
+
+\subsubsection{Chain-of-Thought}
+
+Chain-of-Thought (CoT) to technika, która zamiast prosić o samą odpowiedź, skłania się model do rozbicia złożonego problemu na logiczne kroki pośrednie i dopiero na ich podstawie sformułowania wyniku \cite{llm_mas_techniques_and_business}. Dzięki rozłożeniu zadania na mniejsze kroki zwiększa się czytelność i staranność rozumowania modelu. Model przestaje "zgadywać" końcowy wynik. Dzięki temu łatwiej radzi sobię z problemami wymagającymi kilku następujących po sobie operacji. Technika ta świetnie sprawdza się w arytmetyce, logice czy planowaniu. Jako efekt uboczny uzyskujemy też jawny zapis toku rozumowania, który można przejrzeć i ocenić.
+
+Samo CoT ma jednak słabość: zwykle łączy się je z dekodowaniem zachłannym (ang. greedy decoding), w którym w każdym kroku wybierany jest najbardziej prawdopodobny token. Powstaje wtedy jedna ścieżka rozumowania i jeden błąd w jej środku przesądza o wyniku. Metoda Self-Consistency (CoT-SC) zastępuje ten mechanizm wielokrotnym próbkowaniem: model generuje wiele różnych ścieżek rozumowania, zamiast zatrzymać się na jednej, zachłannej\cite{more_agents_is_all_you_need}\cite{self_consistency}. Następnie wybierana jest odpowiedź najbardziej spójna, czyli taka, do której prowadzi najwięcej niezależnych ścieżek
+
+Cenę za tę poprawę płaci się w obliczeniach. Każde dodatkowe próbkowanie to kolejne wywołanie modelu, więc koszt i czas rosną proporcjonalnie do liczby generowanych ścieżek. W zastosowaniach lokalnych, gdzie zasoby sprzętowe są ograniczone, ma to realne znaczenie przy wyborze liczby próbek.
+
+\subsubsection{Halucynacje}
+
+Mimo imponujących możliwości duże modele językowe mają ograniczenia. Najczęściej wskazuje się wśród nich halucynacje, czyli generowanie błędnych lub niemających oparcia w faktach treści \cite{ma_collaboration}. Problem nie polega wyłącznie na tym, że model się myli. Błędne informacje podaje on tym samym płynnym, zdecydowanym tonem co poprawne, więc z samej formy odpowiedzi trudno ocenić, czy można jej zaufać. Wynika to ze sposobu działania modelu: wybiera on tekst najbardziej prawdopodobny w danym kontekście, a nie sprawdza go z wiarygodnym źródłem wiedzy.
+
+Ryzyko rośnie w systemach złożonych z kilku współpracujących modeli lub agentów. Halucynacja jednego z nich może wywołać efekt kaskadowy: kolejne elementy systemu przyjmują błędny wynik jako pewnik i budują na nim dalsze rozumowanie, przez co błąd się powiela i wzmacnia \cite{llm_hallucination_survey}. Im dłuższy łańcuch przetwarzania, tym trudniej wskazać, w którym miejscu pojawił się pierwotny fałsz.
+
 \label{sec:llm}
