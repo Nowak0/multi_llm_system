@@ -86,7 +86,18 @@ Ryzyko rośnie w systemach złożonych z kilku współpracujących modeli lub ag
 
 \section{Mechanizmy współpracy}
 
-brakuje podrozdziału z opisem rzeczywistych mechanizmów współpracy, np:
-* weryfikacja odpowiedzi przez drugi model
-* debata 2 modeli
-* etc
+Ograniczenia opisane w poprzednich sekcjach, przede wszystkim halucynacje i brak samoweryfikacji, skłoniły badaczy do łączenia kilku wywołań modeli językowych w jeden system. Zamiast polegać na pojedynczej odpowiedzi, taki system zbiera kilka odpowiedzi, a następnie je porównuje, ocenia albo uzgadnia. Uczestnikami mogą być kolejne wywołania tego samego modelu albo różne modele. Każde dodatkowe wywołanie zwiększa koszt obliczeniowy, więc poszczególne mechanizmy różnią się nie tylko skutecznością, lecz także ceną.
+
+\subsection{Głosowanie}
+
+Najprostszym mechanizmem jest głosowanie większościowe. Kilka modeli albo kilka wywołań tego samego modelu rozwiązuje zadanie niezależnie, a za wynik przyjmuje się odpowiedź wskazaną najczęściej. Jest to ta sama idea co w metodzie Self-Consistency, rozszerzona na osobne wywołania i różne modele. W badaniach tej metody dokładność rosła wraz z liczbą agentów biorących udział w głosowaniu \cite{more_agents_is_all_you_need}. Modele nie wymieniają tu jednak informacji. Każdy pracuje w izolacji, a mechanizm jedynie zlicza odpowiedzi, więc błąd popełniony przez większość zostaje utrwalony. Przy dwóch uczestnikach głosowanie traci sens, bo w razie rozbieżności nie ma większości.
+
+\subsection{Weryfikacja odpowiedzi przez drugi model}
+
+Drugi mechanizm rozdziela role. Jeden model generuje rozwiązanie, a drugi je sprawdza: ocenia poprawność, wskazuje błędy i ewentualnie proponuje poprawkę. W ten sposób autor odpowiedzi przestaje być jej jedynym recenzentem. Ma to znaczenie, bo w badaniach modele proszone o poprawienie własnego rozumowania bez zewnętrznej informacji zwrotnej zwykle nie poprawiały wyniku, a niekiedy go pogarszały \cite{llm_cannot_self_correct}. Słabością tego schematu jest asymetria. Weryfikator też może się mylić, a jego ocena nie podlega kontroli, więc błędna krytyka może zepsuć poprawną odpowiedź.
+
+\subsection{Debata}
+
+Debata usuwa tę asymetrię. W jej podstawowym schemacie kilka modeli najpierw rozwiązuje zadanie niezależnie, a następnie w kolejnych rundach otrzymuje odpowiedzi pozostałych uczestników i aktualizuje własną \cite{multiagent_debate}. Każdy model jest więc jednocześnie autorem i recenzentem: broni swojego rozwiązania albo zmienia je pod wpływem argumentów pozostałych. Debata kończy się po ustalonej liczbie rund lub wcześniej, gdy odpowiedzi staną się zgodne. W badaniach schemat ten poprawił wyniki w zadaniach arytmetycznych i matematycznych oraz ograniczył halucynacje w pytaniach o fakty.
+
+Skuteczność debaty zależy od różnorodności uczestników. Model, który nabrał pewności co do swojej odpowiedzi, przestaje generować nowe argumenty, nawet gdy odpowiedź jest błędna. Zjawisko to nazwano degeneracją myśli (ang. Degeneration-of-Thought) \cite{mad_divergent_thinking}. Kilka instancji tego samego modelu dzieli te same luki w wiedzy, więc łatwo osiągają zgodność także w błędzie. Różne modele, trenowane na innych danych, częściej mylą się w różnych miejscach, a wtedy rozbieżność ich odpowiedzi sygnalizuje, że zadanie wymaga dalszej dyskusji. Debata nie chroni jednak przed efektem kaskadowym opisanym przy halucynacjach. Jeśli jeden model przekonująco przedstawi błędne rozumowanie, drugi może je przejąć, a zgodność odpowiedzi nie gwarantuje ich poprawności.
