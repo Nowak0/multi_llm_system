@@ -1,0 +1,6 @@
+condition,models,datasets,n,correct,wrong,abstain,null,correct_%,wrong_%,abstain_%,null_%,correct_%_answered
+solo,gemma4:12b,math+medical,500,346,129,0,25,69.2,25.8,0.0,5.0,72.8
+solo,qwen3.5:9b,math+medical,500,318,171,0,11,63.6,34.2,0.0,2.2,65.0
+debate,qwen3.5:9b + gemma4:12b,math+medical,500,384,91,25,0,76.8,18.2,5.0,0.0,80.8
+debate,gemma4:12b + gemma4:12b,math+medical,500,359,125,16,0,71.8,25.0,3.2,0.0,74.2
+debate,qwen3.5:9b + qwen3.5:9b,math+medical,500,355,133,12,0,71.0,26.6,2.4,0.0,72.7
