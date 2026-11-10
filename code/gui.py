@@ -1,11 +1,3 @@
-"""Simple desktop GUI for the multi-agent system (tkinter, no extra deps).
-
-Run:  python gui.py
-
-The GUI only *observes* the existing protocol through the optional `on_event`
-callback of run_debate / run_solo, so benchmark scripts are unaffected.
-"""
-
 import queue
 import threading
 import time
@@ -31,7 +23,7 @@ ACCENT = "#1f6feb"
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Multi-LLM Debate")
+        self.title("System przetwarzania danych oparty na pojedynczym oraz współpracujących modelach LLM")
         self.geometry("980x780")
         self.minsize(760, 600)
         self.configure(bg=BG)
@@ -45,8 +37,6 @@ class App(tk.Tk):
         self._init_style()
         self._build_settings()
         self._build_question()
-        # bottom-anchored widgets are packed before the expanding log,
-        # so they stay visible however small the window gets
         self._build_status()
         self._build_answer()
         self._build_log()
@@ -150,7 +140,7 @@ class App(tk.Tk):
 
     def _build_answer(self):
         card = self._card("Ostateczna odpowiedź", side="bottom")
-        self.answer_var = tk.StringVar(value="—")
+        self.answer_var = tk.StringVar(value="-")
         self.answer_meta = tk.StringVar(value="")
         ttk.Label(card, textvariable=self.answer_var, style="Answer.TLabel",
                   wraplength=900).pack(anchor="w")
@@ -252,7 +242,7 @@ class App(tk.Tk):
             self._set_busy(ev["text"])
 
         elif kind == "round_start":
-            title = "Runda 0 — niezależne rozwiązania" if ev["round"] == 0 else f"Runda debaty {ev['round']}"
+            title = "Runda 0 - niezależne rozwiązania" if ev["round"] == 0 else f"Runda debaty {ev['round']}"
             self._write(f"{title}\n", "round")
 
         elif kind == "agent_start":
@@ -262,7 +252,7 @@ class App(tk.Tk):
             i = ev["agent"]
             self._write(f"{self.agent_names[i]}", f"agent{i % len(AGENT_COLORS)}")
             if ev["failed"]:
-                self._write("  — błąd zapytania", "error")
+                self._write("  - błąd zapytania", "error")
                 if ev["round"] > 0:
                     self._write(" (zachowano poprzednią odpowiedź)", "muted")
             self._write("  →  ")
@@ -274,13 +264,13 @@ class App(tk.Tk):
                 self._write(f"{ev['thought']}\n", "thought")
 
         elif kind == "consensus":
-            self._write(f"✔ Konsensus w rundzie {ev['round']}: {ev['answer']}\n", "ok")
+            self._write(f"Konsensus w rundzie {ev['round']}: {ev['answer']}\n", "ok")
 
         elif kind == "final":
             self._set_running(False)
             if ev["abstained"] or ev["answer"] == ABSTAIN:
-                self._write(f"✖ Brak konsensusu po {ev['rounds']} rundach → ABSTAIN\n", "warn")
-                self.answer_var.set("ABSTAIN — modele nie doszły do porozumienia")
+                self._write(f"Brak konsensusu po {ev['rounds']} rundach → ABSTAIN\n", "warn")
+                self.answer_var.set("ABSTAIN - modele nie doszły do porozumienia")
             else:
                 self.answer_var.set(ev["answer"] if ev["answer"] is not None else "brak odpowiedzi")
             meta = f"Czas: {ev['elapsed']:.1f} s"
@@ -292,8 +282,8 @@ class App(tk.Tk):
         elif kind == "error":
             self._set_running(False)
             self._write(f"\nBłąd: {ev['text']}\n", "error")
-            self.answer_var.set("—")
-            self.status.set("Błąd — czy Ollama jest uruchomiona?")
+            self.answer_var.set("-")
+            self.status.set("Błąd - czy Ollama jest uruchomiona?")
 
     def _on_close(self):
         if self.worker and self.worker.is_alive():
