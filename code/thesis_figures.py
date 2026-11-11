@@ -461,6 +461,10 @@ def debate_balance(records, domain):
         "rescued_after_no_answer": 0,
         "lost": 0,
         "lost_to_abstain": 0,
+        "debated": 0,
+        "debated_nobody_correct": 0,
+        "debated_someone_correct": 0,
+        "debated_someone_correct_kept": 0,
     }
     for record in records:
         first_round = record["trace"][0]["solutions"]
@@ -473,6 +477,13 @@ def debate_balance(records, domain):
         if record["debate_rounds"] == 0 and not record["abstained"]:
             balance["agreed_first_round"] += 1
             balance["agreed_first_round_correct"] += int(final_correct)
+        if not (record["debate_rounds"] == 0 and not record["abstained"]):
+            balance["debated"] += 1
+            if any(agent_correct):
+                balance["debated_someone_correct"] += 1
+                balance["debated_someone_correct_kept"] += int(final_correct)
+            else:
+                balance["debated_nobody_correct"] += 1
         if not any(agent_correct) and final_correct:
             balance["rescued"] += 1
             balance["rescued_after_no_answer"] += int(any_no_answer)
