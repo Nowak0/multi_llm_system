@@ -1,0 +1,29 @@
+% !TEX root = ../main.tex
+\begin{table}[H]
+    \centering
+    \caption{Bilans debaty względem rundy niezależnej (liczba zadań, dla każdej debaty $n = 250$)}
+    \label{tab:bilans_debaty}
+    \small
+    \setlength{\tabcolsep}{2.5pt}
+    \renewcommand{\arraystretch}{1.35}
+    \sbox0{%
+    \begin{tabular}{|>{\centering\arraybackslash}p{2.0cm}|>{\centering\arraybackslash}p{1.4cm}|>{\centering\arraybackslash}p{1.3cm}|>{\centering\arraybackslash}p{1.9cm}|>{\centering\arraybackslash}p{1.3cm}|>{\centering\arraybackslash}p{2.7cm}|>{\centering\arraybackslash}p{1.3cm}|>{\centering\arraybackslash}p{1.9cm}|}
+        \hline
+        \rowcolor{gray!20}
+        \multicolumn{2}{|c|}{} & \multicolumn{2}{c|}{\textbf{Zgoda od razu}} & \multicolumn{2}{c|}{\textbf{Uratowane}} & \multicolumn{2}{c|}{\textbf{Utracone}} \\ \cline{3-8}
+        \rowcolor{gray!20}
+        \textbf{Zbiór} & \textbf{Debata} & \textbf{razem} & \textbf{w tym poprawna} & \textbf{razem} & \textbf{w tym po braku odpowiedzi} & \textbf{razem} & \textbf{w tym abstain} \\ \hline
+        Matematyka & Q+Q & 185 & 134 & 19 & 5 & 1 & 1 \\ \cline{2-8}
+         & Q+G & 141 & 132 & 10 & 7 & 1 & 1 \\ \cline{2-8}
+         & G+G & 207 & 185 & 8 & 8 & 3 & 2 \\ \hline
+        Medycyna & Q+Q & 220 & 163 & 0 & 0 & 11 & 3 \\ \cline{2-8}
+         & Q+G & 160 & 129 & 1 & 0 & 34 & 10 \\ \cline{2-8}
+         & G+G & 229 & 150 & 1 & 0 & 6 & 0 \\ \hline
+    \end{tabular}}
+    \usebox{0}
+    \par\smallskip
+    \begin{minipage}{\wd0}
+        \raggedright\footnotesize
+        Zgoda od razu -- zadania, w których oba modele podały równoważne odpowiedzi w rundzie niezależnej, przed debatą. Uratowane -- zadania, w których żaden model nie podał poprawnej odpowiedzi w rundzie niezależnej, a wynik końcowy jest poprawny; „po braku odpowiedzi” -- gdy co najmniej jeden model nie zwrócił wtedy odczytanej odpowiedzi. Utracone -- zadania, w których co najmniej jeden model podał poprawną odpowiedź w rundzie niezależnej, a wynik końcowy nie jest poprawny; „abstain” -- gdy debata zakończyła się abstain.
+    \end{minipage}
+\end{table}

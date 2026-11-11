@@ -1,0 +1,33 @@
+% !TEX root = ../main.tex
+\begin{table}[H]
+    \centering
+    \caption{Wyniki zbiorcze dla obu zbiorów danych ($n = 250$ zadań na zbiór)}
+    \label{tab:wyniki_zbiorcze}
+    \small
+    \setlength{\tabcolsep}{2.5pt}
+    \renewcommand{\arraystretch}{1.35}
+    \sbox0{%
+    \begin{tabular}{|>{\centering\arraybackslash}p{2.0cm}|>{\centering\arraybackslash}p{2.2cm}|>{\centering\arraybackslash}p{1.7cm}|>{\centering\arraybackslash}p{1.45cm}|>{\centering\arraybackslash}p{1.55cm}|>{\centering\arraybackslash}p{1.25cm}|>{\centering\arraybackslash}p{1.7cm}|>{\centering\arraybackslash}p{2.0cm}|}
+        \hline
+        \rowcolor{gray!20}
+        \multicolumn{2}{|c|}{} & \multicolumn{4}{c|}{\textbf{Odsetek zadań [\%]}} & \textbf{Średni} & \textbf{Tokeny} \\ \cline{3-6}
+        \rowcolor{gray!20}
+        \textbf{Zbiór} & \textbf{Konfiguracja} & \textbf{Poprawne} & \textbf{Błędne} & \textbf{Abstain} & \textbf{Null} & \textbf{czas [s]} & \textbf{na zadanie} \\ \hline
+        Matematyka & Q & 60,8 & 35,6 & -- & 3,6 & 13,5 & 760 \\ \cline{2-8}
+         & G & 78,0 & 13,2 & -- & 8,8 & 27,8 & 955 \\ \cline{2-8}
+         & Q+Q & 72,0 & 26,0 & 2,0 & -- & 52,9 & 3\,291 \\ \cline{2-8}
+         & Q+G & \textbf{85,6} & 8,8 & 5,6 & -- & 103,7 & 4\,525 \\ \cline{2-8}
+         & G+G & 81,2 & 12,4 & 6,4 & -- & 125,2 & 4\,128 \\ \hline
+        Medycyna & Q & 66,4 & 32,8 & -- & 0,8 & 7,8 & 508 \\ \cline{2-8}
+         & G & 60,4 & 38,4 & -- & 1,2 & 8,5 & 440 \\ \cline{2-8}
+         & Q+Q & \textbf{70,0} & 27,2 & 2,8 & -- & 19,7 & 1\,575 \\ \cline{2-8}
+         & Q+G & 68,0 & 27,6 & 4,4 & -- & 34,8 & 2\,145 \\ \cline{2-8}
+         & G+G & 62,4 & 37,6 & 0,0 & -- & 16,2 & 1\,042 \\ \hline
+    \end{tabular}}
+    \usebox{0}
+    \par\smallskip
+    \begin{minipage}{\wd0}
+        \raggedright\footnotesize
+        Q -- \texttt{qwen3.5:9b}, G -- \texttt{gemma4:12b}; Q+Q, Q+G i G+G -- debata odpowiednich par modeli. Czas i liczba tokenów dotyczą jednego zadania, a tokeny (wejściowe i wygenerowane) zliczono we wszystkich wywołaniach modeli. Pogrubiono najwyższy odsetek poprawnych odpowiedzi w zbiorze.
+    \end{minipage}
+\end{table}

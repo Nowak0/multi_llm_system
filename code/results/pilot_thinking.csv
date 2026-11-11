@@ -1,0 +1,8 @@
+dataset,config,n,off_correct,on_correct,off_wrong,on_wrong,off_no_answer,on_no_answer,off_time_s,on_time_s
+math,Q,10,5,7,3,0,2,3,25.6,78.5
+math,G,10,8,4,1,0,1,6,25.5,130.7
+math,Q+Q,10,6,8,4,0,0,2,54.9,384.5
+math,Q+G,10,9,5,1,0,0,5,121.8,649.9
+math,G+G,10,9,4,1,0,0,6,71.7,901.6
+medical,Q,50,28,26,21,10,1,14,8.0,66.6
+medical,G,49,28,3,20,1,1,45,9.4,150.5

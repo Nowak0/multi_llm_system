@@ -9,3 +9,29 @@
 \subsection{Metryki oceny}
 
 \section{Przeprowadzenie analizy wyników oraz porównanie jakości odpowiedzi w obu trybach działania systemu}
+
+Analizie poddano pięć konfiguracji systemu na dwóch zbiorach danych, MATH-500 i MedMCQA. W każdym rozwiązano po 250 identycznych zadań we wszystkich konfiguracjach modeli. Modele \texttt{qwen3.5:9b} i \texttt{gemma4:12b} oznaczono odpowiednio jako Q i G. Tryb pojedynczego modelu (solo) reprezentują Q i G, a tryb współpracy -- debaty jednorodne Q+Q i G+G oraz debata mieszana Q+G. Każdą konfigurację uruchomiono z ustalonym ziarnem. Różnice oceniono testem McNemara na odpowiadających sobie zadaniach. Analizę uporządkowano: kolejne podsekcje omawiają jakość odpowiedzi, warunki, w których debata pomaga, koszt obliczeniowy oraz niepowodzenia generacji.
+
+\subsection{Jakość odpowiedzi}
+\label{sec:jakosc}
+
+Główną miarą jakości jest dokładność, czyli odsetek zadań rozwiązanych poprawnie spośród wszystkich zebranych. Nie oznacza to, że pozostałe wyniki są równoważne: abstain, czyli brak konsensusu w debacie, uznano za lepszy od odpowiedzi błędnej i od null, ponieważ system, który nie ma pewności, powinien raczej powstrzymać się od odpowiedzi, niż halucynować. Z tego względu tabela~\ref{tab:wyniki_zbiorcze} i wykres~\ref{wyk:sklad_wynikow} pokazują rozkład czterech kategorii wyników, a nie tylko odsetek poprawnych.
+
+\input{tabels/wyniki-zbiorcze}
+
+Rozpiętość wyników zależy od zbioru. W matematyce dokładność waha się od 60,8\% (Q) do 85,6\% (Q+G), czyli o 24,8 punktu procentowego (pp), a w medycynie od 60,4\% (G) do 70,0\% (Q+Q), czyli o 9,6~pp. Zbiór matematyczny pokazuje wyraźne różnice między konfiguracjami, natomiast w medycynie wszystkie leżą blisko siebie.
+
+\begin{wykres}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figures/rys-sklad-wynikow.png}
+    \caption{Skład wyników w poszczególnych konfiguracjach: odsetek zadań poprawnych, błędnych, abstain i null ($n = 250$ zadań na zbiór)}
+    \label{wyk:sklad_wynikow}
+\end{wykres}
+
+W matematyce G przewyższa Q o 17,2~pp ($p < 0{,}001$), chociaż 8,8\% zadań kończy się u niego wynikiem null, czyli generacją uciętą po przekroczeniu limitu 6000 tokenów (sekcja~\ref{sec:niepowodzenia}). Przewagę zawdzięcza małemu udziałowi odpowiedzi błędnych: 13,2\% wobec 35,6\% w Q. W medycynie kolejność jest odwrotna: Q jest lepszy o 6,0~pp (66,4\% wobec 60,4\%). Można przypuszczać, że modele mają mocne i słabe strony, na przykład G lepiej radzi sobie z rozumowaniem wieloetapowym, a Q z zadaniami wiedzowymi, jednak przeprowadzone eksperymenty tego jednoznacznie nie rozstrzygają.
+
+\input{tabels/testy-parowane}
+
+Debata zmniejsza odsetek odpowiedzi błędnych. We wszystkich ośmiu porównaniach debaty z jej modelami składowymi (Q+Q z Q, G+G z G oraz Q+G z Q i z G, w obu zbiorach) udział błędnych był niższy, choć skala spadku była bardzo zróżnicowana. Q+Q zmniejsza go o 9,6~pp w matematyce i 5,6~pp w medycynie, Q+G względem modelu solo o mniejszym odsetku błędnych (G w matematyce, Q w medycynie) odpowiednio o 4,4 i 5,2~pp, a G+G zaledwie o 0,8~pp w obu zbiorach. O tym, czy spadek błędnych przekłada się na dokładność, decyduje zbiór. W matematyce Q+Q zyskuje 11,2~pp względem Q, a więc więcej niż wynosi spadek liczby błędnych, ponieważ maleje też udział zadań bez odpowiedzi (z 3,6\% null do 2,0\% abstain). W medycynie spadek odsetka błędnych w Q+G względem Q (5,2~pp) daje wzrost poprawnych tylko o 1,6~pp, a pozostałe 3,6~pp przechodzi w abstain (z 0,8\% null do 4,4\%). Przy przyjętej hierarchii wyników także jest to zyskiem: system rzadziej odpowiada błędnie, a częściej zgłasza brak zgody między modelami.
+
+Debata mieszana Q+G jest najlepszą konfiguracją w matematyce: przewyższa G o 7,6~pp, Q+Q o 13,6~pp oraz G+G o 4,4~pp i ma najmniejszy odsetek błędnych (8,8\%). W medycynie jej wynik (68,0\%) jest wyższy niż Q (o 1,6~pp) i G+G (o 5,6~pp) oraz niższy niż Q+Q (o 2,0~pp). Żaden z testów nie wskazuje konfiguracji znacząco lepszej od Q+G. W obu zbiorach Q+G nie ustępuje więc najlepszemu modelowi solo, a w matematyce jest od niego istotnie lepsza. Nie wymaga przy tym wcześniejszego rozpoznania, który model pasuje do dziedziny. W tym sensie debata mieszana jest w obu badanych zbiorach rozwiązaniem najbardziej uniwersalnym, choć kosztem największego zużycia tokenów (sekcja~\ref{sec:koszt}).

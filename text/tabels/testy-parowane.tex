@@ -1,0 +1,29 @@
+% !TEX root = ../main.tex
+\begin{table}[H]
+    \centering
+    \caption{Porównania parami konfiguracji na tych samych zadaniach}
+    \label{tab:testy_parowane}
+    \small
+    \setlength{\tabcolsep}{2.5pt}
+    \renewcommand{\arraystretch}{1.35}
+    \sbox0{%
+    \begin{tabular}{|>{\centering\arraybackslash}p{3.2cm}|>{\centering\arraybackslash}p{1.3cm}|>{\centering\arraybackslash}p{1.35cm}|>{\centering\arraybackslash}p{1.35cm}|>{\centering\arraybackslash}p{1.4cm}|>{\centering\arraybackslash}p{1.3cm}|>{\centering\arraybackslash}p{1.35cm}|>{\centering\arraybackslash}p{1.35cm}|>{\centering\arraybackslash}p{1.4cm}|}
+        \hline
+        \rowcolor{gray!20}
+        \multicolumn{1}{|c|}{} & \multicolumn{4}{c|}{\textbf{Matematyka}} & \multicolumn{4}{c|}{\textbf{Medycyna}} \\ \cline{2-9}
+        \rowcolor{gray!20}
+        \textbf{Porównanie} & \textbf{$\Delta$ [pp]} & \textbf{tylko A} & \textbf{tylko B} & \textbf{p} & \textbf{$\Delta$ [pp]} & \textbf{tylko A} & \textbf{tylko B} & \textbf{p} \\ \hline
+        Q+Q vs Q & $+$11,2 & 33 & 5 & \textbf{$<$0,001} & $+$3,6 & 13 & 4 & \textbf{0,049} \\ \hline
+        G+G vs G & $+$3,2 & 11 & 3 & 0,057 & $+$2,0 & 10 & 5 & 0,302 \\ \hline
+        Q+G vs lepszy solo & $+$7,6 & 22 & 3 & \textbf{$<$0,001} & $+$1,6 & 21 & 17 & 0,627 \\ \hline
+        Q+G vs Q+Q & $+$13,6 & 43 & 9 & \textbf{$<$0,001} & $-$2,0 & 13 & 18 & 0,473 \\ \hline
+        Q+G vs G+G & $+$4,4 & 17 & 6 & \textbf{0,035} & $+$5,6 & 29 & 15 & \textbf{0,049} \\ \hline
+        G vs Q & $+$17,2 & 58 & 15 & \textbf{$<$0,001} & $-$6,0 & 25 & 40 & 0,082 \\ \hline
+    \end{tabular}}
+    \usebox{0}
+    \par\smallskip
+    \begin{minipage}{\wd0}
+        \raggedright\footnotesize
+        A i B -- pierwsza i druga konfiguracja w wierszu; $\Delta$ -- różnica odsetka poprawnych odpowiedzi A $-$ B w punktach procentowych (pp); „tylko A” i „tylko B” -- liczba zadań rozwiązanych poprawnie wyłącznie przez daną konfigurację; p -- wartość p dokładnego testu McNemara, pogrubiona dla $p < 0{,}05$. Lepszy solo: G w matematyce, Q w medycynie.
+    \end{minipage}
+\end{table}

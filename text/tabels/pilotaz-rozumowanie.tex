@@ -1,0 +1,30 @@
+% !TEX root = ../main.tex
+\begin{table}[H]
+    \centering
+    \caption{Tryb bez rozumowania i z rozumowaniem na tych samych zadaniach}
+    \label{tab:pilotaz_rozumowanie}
+    \small
+    \setlength{\tabcolsep}{2.5pt}
+    \renewcommand{\arraystretch}{1.35}
+    \sbox0{%
+    \begin{tabular}{|>{\centering\arraybackslash}p{2.0cm}|>{\centering\arraybackslash}p{2.3cm}|>{\centering\arraybackslash}p{1.5cm}|>{\centering\arraybackslash}p{1.9cm}|>{\centering\arraybackslash}p{1.9cm}|>{\centering\arraybackslash}p{2.0cm}|>{\centering\arraybackslash}p{2.7cm}|}
+        \hline
+        \rowcolor{gray!20}
+        \multicolumn{3}{|c|}{} & \multicolumn{4}{c|}{\textbf{bez rozumowania $\rightarrow$ z rozumowaniem}} \\ \cline{4-7}
+        \rowcolor{gray!20}
+        \textbf{Zbiór} & \textbf{Konfiguracja} & \textbf{Liczba zadań} & \textbf{Poprawne} & \textbf{Błędne} & \textbf{Brak odpowiedzi} & \textbf{Średni czas na zadanie [s]} \\ \hline
+        Matematyka & Q & 10 & 5 $\rightarrow$ 7 & 3 $\rightarrow$ 0 & 2 $\rightarrow$ 3 & 25,6 $\rightarrow$ 78,5 \\ \cline{2-7}
+         & G & 10 & 8 $\rightarrow$ 4 & 1 $\rightarrow$ 0 & 1 $\rightarrow$ 6 & 25,5 $\rightarrow$ 130,7 \\ \cline{2-7}
+         & Q+Q & 10 & 6 $\rightarrow$ 8 & 4 $\rightarrow$ 0 & 0 $\rightarrow$ 2 & 54,9 $\rightarrow$ 384,5 \\ \cline{2-7}
+         & Q+G & 10 & 9 $\rightarrow$ 5 & 1 $\rightarrow$ 0 & 0 $\rightarrow$ 5 & 121,8 $\rightarrow$ 649,9 \\ \cline{2-7}
+         & G+G & 10 & 9 $\rightarrow$ 4 & 1 $\rightarrow$ 0 & 0 $\rightarrow$ 6 & 71,7 $\rightarrow$ 901,6 \\ \hline
+        Medycyna & Q & 50 & 28 $\rightarrow$ 26 & 21 $\rightarrow$ 10 & 1 $\rightarrow$ 14 & 8,0 $\rightarrow$ 66,6 \\ \cline{2-7}
+         & G & 49 & 28 $\rightarrow$ 3 & 20 $\rightarrow$ 1 & 1 $\rightarrow$ 45 & 9,4 $\rightarrow$ 150,5 \\ \hline
+    \end{tabular}}
+    \usebox{0}
+    \par\smallskip
+    \begin{minipage}{\wd0}
+        \raggedright\footnotesize
+        W kolumnach Poprawne, Błędne, Brak odpowiedzi i Średni czas każda komórka ma postać „x $\rightarrow$ y”, gdzie x to wynik bez rozumowania, a y to wynik z rozumowaniem. Brak odpowiedzi oznacza w trybie jednomodelowym odpowiedź obciętą limitem tokenów (null), a w debacie brak konsensusu (abstain). Liczby w kolumnach Poprawne, Błędne i Brak odpowiedzi to liczby zadań.
+    \end{minipage}
+\end{table}
