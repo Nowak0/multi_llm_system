@@ -465,6 +465,7 @@ def debate_balance(records, domain):
         "debated_nobody_correct": 0,
         "debated_someone_correct": 0,
         "debated_someone_correct_kept": 0,
+        "debated_someone_correct_other_wrong": 0,
     }
     for record in records:
         first_round = record["trace"][0]["solutions"]
@@ -482,6 +483,7 @@ def debate_balance(records, domain):
             if any(agent_correct):
                 balance["debated_someone_correct"] += 1
                 balance["debated_someone_correct_kept"] += int(final_correct)
+                balance["debated_someone_correct_other_wrong"] += int(not any_no_answer)
             else:
                 balance["debated_nobody_correct"] += 1
         if not any(agent_correct) and final_correct:
@@ -506,14 +508,19 @@ def debate_balance_rows(data):
 
 
 def build_balance_table(rows):
-    group = lambda title: r"\multicolumn{2}{c|}{\textbf{%s}}" % title
+    group = lambda first, second: r"\multicolumn{2}{c|}{\shortstack{\textbf{%s}\\\textbf{%s}}}" % (first, second)
     sub = lambda label: r"\textbf{%s}" % label
     header = header_row(
-        [r"\multicolumn{2}{|c|}{}", group("Zgoda od razu"), group("Uratowane"), group("Utracone")],
+        [
+            r"\multicolumn{2}{|c|}{}",
+            group("Zgoda", "od razu"),
+            group("Żaden model", "poprawny"),
+            group("Jeden model", "poprawny"),
+        ],
         r"\cline{3-8}",
     ) + header_row(
         [sub("Zbiór"), sub("Debata"), sub("razem"), sub("w tym poprawna"), sub("razem"),
-         sub("w tym po braku odpowiedzi"), sub("razem"), sub("w tym abstain")]
+         sub("w tym uratowane"), sub("razem"), sub("w tym utracone")]
     )
     body = []
     for domain in DOMAINS:
@@ -524,25 +531,26 @@ def build_balance_table(rows):
                 row["config"],
                 str(row["agreed_first_round"]),
                 str(row["agreed_first_round_correct"]),
+                str(row["debated_nobody_correct"]),
                 str(row["rescued"]),
-                str(row["rescued_after_no_answer"]),
+                str(row["debated_someone_correct"]),
                 str(row["lost"]),
-                str(row["lost_to_abstain"]),
             ]
+            assert row["agreed_first_round"] + row["debated_nobody_correct"] + row["debated_someone_correct"] == row["n"]
             is_last = index == len(domain_rows) - 1
             body.append(table_row(cells, r"\hline" if is_last else r"\cline{2-8}"))
-    widths = ("1.3cm", "1.9cm", "1.3cm", "2.7cm", "1.3cm", "1.9cm")
+    widths = ("1.3cm", "1.9cm", "1.3cm", "1.9cm", "1.3cm", "1.9cm")
     spec = column_spec(
         [center_column("2.0cm"), center_column("1.4cm")] + [center_column(width) for width in widths]
     )
     caption = r"Bilans debaty względem rundy niezależnej (liczba zadań, dla każdej debaty $n = 250$)"
     note = (
         "Zgoda od razu -- zadania, w których oba modele podały równoważne odpowiedzi w rundzie niezależnej, "
-        "przed debatą. Uratowane -- zadania, w których żaden model nie podał poprawnej odpowiedzi w rundzie "
-        "niezależnej, a wynik końcowy jest poprawny; „po braku odpowiedzi” -- gdy co najmniej jeden model nie "
-        "zwrócił wtedy odczytanej odpowiedzi. Utracone -- zadania, w których co najmniej jeden model podał "
-        "poprawną odpowiedź w rundzie niezależnej, a wynik końcowy nie jest poprawny; „abstain” -- gdy debata "
-        "zakończyła się abstain."
+        "przed debatą; „w tym poprawna” -- gdy ta odpowiedź jest poprawna. Pozostałe zadania trafiły do debaty. "
+        "Żaden model poprawny i Jeden model poprawny -- zadania z debatą, w których w rundzie niezależnej "
+        "poprawną odpowiedź podał odpowiednio żaden albo jeden z modeli. Uratowane -- zadania z pierwszej z tych "
+        "grup, w których wynik końcowy jest poprawny. Utracone -- zadania z drugiej, w których wynik końcowy nie "
+        "jest poprawny, także gdy debata zakończyła się abstain."
     )
     return render_table("tab:bilans_debaty", caption, spec, header, body, note)
 
