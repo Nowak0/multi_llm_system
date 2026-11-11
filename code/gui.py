@@ -11,7 +11,7 @@ from grading import ABSTAIN
 from main import MODELS as AVAILABLE_MODELS
 
 DOMAINS = {"Matematyka": "math", "Medycyna (ABCD)": "medical"}
-AGENT_COLORS = ["#1f6feb", "#c2410c", "#15803d", "#7c3aed"]
+MODEL_COLORS = ["#1f6feb", "#c2410c", "#15803d", "#7c3aed"]
 POLL_MS = 100
 
 BG = "#f6f7f9"
@@ -58,6 +58,7 @@ class App(tk.Tk):
         style.configure("Card.TFrame", background=CARD)
         style.configure("Card.TLabel", background=CARD)
         style.configure("Card.TRadiobutton", background=CARD)
+        style.configure("Card.TCheckbutton", background=CARD)
         style.configure("Muted.TLabel", background=BG, foreground=MUTED)
         style.configure("Accent.TButton", font=("Segoe UI Semibold", 10), foreground="white",
                         background=ACCENT, padding=(16, 6), borderwidth=0)
@@ -77,9 +78,10 @@ class App(tk.Tk):
         self.mode = tk.StringVar(value="debate")
         self.domain = tk.StringVar(value=next(iter(DOMAINS)))
         self.solo_model = tk.StringVar(value=AVAILABLE_MODELS[0])
-        self.agent_a = tk.StringVar(value=AVAILABLE_MODELS[0])
-        self.agent_b = tk.StringVar(value=AVAILABLE_MODELS[-1])
+        self.model_a = tk.StringVar(value=AVAILABLE_MODELS[0])
+        self.model_b = tk.StringVar(value=AVAILABLE_MODELS[-1])
         self.rounds = tk.IntVar(value=DEFAULT_ROUNDS)
+        self.think = tk.BooleanVar(value=False)
 
         row = ttk.Frame(card, style="Card.TFrame")
         row.pack(fill="x")
@@ -90,6 +92,8 @@ class App(tk.Tk):
         ttk.Label(row, text="Dziedzina:", style="Card.TLabel").pack(side="left", padx=(30, 6))
         ttk.Combobox(row, textvariable=self.domain, values=list(DOMAINS), state="readonly",
                      width=16).pack(side="left")
+        ttk.Checkbutton(row, text="Thinking (rozumowanie modelu)", variable=self.think,
+                        style="Card.TCheckbutton").pack(side="left", padx=(30, 0))
 
         # Solo options
         self.solo_frame = ttk.Frame(card, style="Card.TFrame")
@@ -99,7 +103,7 @@ class App(tk.Tk):
 
         # Debate options
         self.debate_frame = ttk.Frame(card, style="Card.TFrame")
-        for label, var in (("Agent 1:", self.agent_a), ("Agent 2:", self.agent_b)):
+        for label, var in (("Model 1:", self.model_a), ("Model 2:", self.model_b)):
             ttk.Label(self.debate_frame, text=label, style="Card.TLabel").pack(side="left")
             ttk.Combobox(self.debate_frame, textvariable=var, values=AVAILABLE_MODELS,
                          state="readonly", width=20).pack(side="left", padx=(6, 20))
@@ -132,11 +136,13 @@ class App(tk.Tk):
         self.log.tag_configure("muted", foreground=MUTED)
         self.log.tag_configure("answer", font=("Consolas", 10, "bold"))
         self.log.tag_configure("thought", foreground="#374151", lmargin1=18, lmargin2=18, spacing3=6)
+        self.log.tag_configure("thinking", foreground="#9ca3af", font=("Segoe UI", 9, "italic"),
+                               lmargin1=18, lmargin2=18, spacing3=4)
         self.log.tag_configure("ok", foreground="#15803d", font=("Segoe UI Semibold", 10), spacing1=6)
         self.log.tag_configure("warn", foreground="#b45309", font=("Segoe UI Semibold", 10), spacing1=6)
         self.log.tag_configure("error", foreground="#b91c1c")
-        for i, color in enumerate(AGENT_COLORS):
-            self.log.tag_configure(f"agent{i}", foreground=color, font=("Segoe UI Semibold", 10))
+        for i, color in enumerate(MODEL_COLORS):
+            self.log.tag_configure(f"model{i}", foreground=color, font=("Segoe UI Semibold", 10))
 
     def _build_answer(self):
         card = self._card("Ostateczna odpowiedź", side="bottom")
@@ -195,23 +201,24 @@ class App(tk.Tk):
 
         domain = DOMAINS[self.domain.get()]
         mode = self.run_mode = self.mode.get()
-        models = [self.solo_model.get()] if mode == "solo" else [self.agent_a.get(), self.agent_b.get()]
+        models = [self.solo_model.get()] if mode == "solo" else [self.model_a.get(), self.model_b.get()]
         rounds = int(self.rounds.get())
-        self.agent_names = [f"Agent {i + 1} ({m})" if mode == "debate" else m for i, m in enumerate(models)]
+        think = bool(self.think.get())
+        self.model_names = [f"Model {i + 1} ({m})" if mode == "debate" else m for i, m in enumerate(models)]
 
         self._clear_log()
         self.answer_var.set("…")
         self.answer_meta.set("")
         self._write(f"Tryb: {'debata' if mode == 'debate' else 'solo'} · dziedzina: {domain} · "
-                    f"modele: {', '.join(models)}\n", "muted")
+                    f"modele: {', '.join(models)} · thinking: {'wł.' if think else 'wył.'}\n", "muted")
         self._set_running(True)
         self._set_busy("Sprawdzanie dostępności modeli w Ollama")
 
-        self.worker = threading.Thread(target=self._run, args=(mode, question, domain, models, rounds),
+        self.worker = threading.Thread(target=self._run, args=(mode, question, domain, models, rounds, think),
                                        daemon=True)
         self.worker.start()
 
-    def _run(self, mode, question, domain, models, rounds):
+    def _run(self, mode, question, domain, models, rounds, think):
         """Worker thread: never touches tkinter, only pushes events to the queue."""
         emit = self.events.put
         try:
@@ -220,9 +227,9 @@ class App(tk.Tk):
                 check_ollama_model(m)
                 self.used_models.add(m)
             if mode == "solo":
-                run_solo(question, domain, models[0], on_event=emit)
+                run_solo(question, domain, models[0], on_event=emit, think=think)
             else:
-                run_debate(question, domain, models, rounds=rounds, on_event=emit)
+                run_debate(question, domain, models, rounds=rounds, on_event=emit, think=think)
         except Exception as e:
             emit({"type": "error", "text": f"{type(e).__name__}: {e}"})
 
@@ -246,11 +253,11 @@ class App(tk.Tk):
             self._write(f"{title}\n", "round")
 
         elif kind == "agent_start":
-            self._set_busy(f"{self.agent_names[ev['agent']]} przetwarza")
+            self._set_busy(f"{self.model_names[ev['agent']]} przetwarza")
 
         elif kind == "agent_done":
             i = ev["agent"]
-            self._write(f"{self.agent_names[i]}", f"agent{i % len(AGENT_COLORS)}")
+            self._write(f"{self.model_names[i]}", f"model{i % len(MODEL_COLORS)}")
             if ev["failed"]:
                 self._write("  - błąd zapytania", "error")
                 if ev["round"] > 0:
@@ -260,6 +267,8 @@ class App(tk.Tk):
             if ev.get("elapsed") is not None:
                 self._write(f"   ({ev['elapsed']:.1f} s)", "muted")
             self._write("\n")
+            if ev.get("thinking"):
+                self._write(f"Tok myślenia: {ev['thinking'].strip()}\n", "thinking")
             if ev.get("thought"):
                 self._write(f"{ev['thought']}\n", "thought")
 

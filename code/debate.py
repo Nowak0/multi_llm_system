@@ -134,15 +134,21 @@ def _emit(on_event, kind: str, **data):
         print(f"on_event callback failed: {e}")
 
 
-def _run_turn(model, system, user, schema, temperature, seed):
-    """One model call -> turn result dict, or None."""
+def _run_turn(model, system, user, schema, temperature, seed, think=None):
+    """One model call -> turn result dict, or None.
+    think=None falls back to the module-wide THINK_ENABLED setting."""
+    if think is None:
+        think = THINK_ENABLED
+    if think:
+        # prompts end with a "/no_think" soft switch; drop it when thinking is requested
+        system = system.replace("/no_think", "").rstrip()
     agent = Agent(model=model, role=system)
     prompt = agent.build_chat_prompt(user)
 
     try:
         response = agent.ollama_chat(
             prompt=prompt, temperature=temperature, max_tokens=MAX_TOKENS,
-            schema=schema, seed=seed, think=THINK_ENABLED,
+            schema=schema, seed=seed, think=think,
         )
     except requests.exceptions.RequestException as e:
         print(f"Ollama request failed for {model}: {e}")
@@ -152,18 +158,19 @@ def _run_turn(model, system, user, schema, temperature, seed):
 
 
 def run_debate(question: str, domain: str, models: list[str], rounds: int = DEFAULT_ROUNDS,
-               seed: int = None, console: bool = False, on_event=None) -> dict:
+               seed: int = None, console: bool = False, on_event=None, think: bool = None) -> dict:
     """Run the full debate protocol for one question.
 
     on_event: optional callable receiving progress dicts (round_start,
-    agent_start, agent_done, consensus, final). Used by the GUI."""
+    agent_start, agent_done, consensus, final). Used by the GUI.
+    think: enable model thinking; None uses THINK_ENABLED."""
     equiv = equiv_fn(domain)
     n = len(models)
     trace = []
     start = time.perf_counter()
 
     _emit(on_event, "round_start", round=0)
-    solutions = _run_independent_round(question, domain, models, seed, n, console, on_event)
+    solutions = _run_independent_round(question, domain, models, seed, n, console, on_event, think)
     trace.append(_snapshot(0, models, solutions))
 
     agreed = _consensus([_answer_of(s) for s in solutions], equiv)
@@ -175,7 +182,7 @@ def run_debate(question: str, domain: str, models: list[str], rounds: int = DEFA
 
     for r in range(1, rounds + 1):
         _emit(on_event, "round_start", round=r)
-        solutions = _run_debate_round(question, domain, models, solutions, seed, r, n, console, on_event)
+        solutions = _run_debate_round(question, domain, models, solutions, seed, r, n, console, on_event, think)
         trace.append(_snapshot(r, models, solutions))
 
         agreed = _consensus([_answer_of(s) for s in solutions], equiv)
@@ -190,7 +197,7 @@ def run_debate(question: str, domain: str, models: list[str], rounds: int = DEFA
                                           elapsed=time.perf_counter() - start))
 
 
-def _run_independent_round(question, domain, models, seed, n, console, on_event=None):
+def _run_independent_round(question, domain, models, seed, n, console, on_event=None, think=None):
     """Round 0: every agent solves alone, with no visibility into peers."""
     answer_format = ANSWER_FORMATS[domain]
     solve_system = SOLVE.format(answer_format=answer_format)
@@ -200,17 +207,18 @@ def _run_independent_round(question, domain, models, seed, n, console, on_event=
         _emit(on_event, "agent_start", round=0, agent=i, model=model)
         sol = _run_turn(
             model, solve_system, question, SOLVE_SCHEMA,
-            SOLVE_TEMPERATURE, _seed_for(seed, 0, i, n)
+            SOLVE_TEMPERATURE, _seed_for(seed, 0, i, n), think,
         )
         solutions.append(sol)
         _emit(on_event, "agent_done", round=0, agent=i, model=model, failed=sol is None,
               answer=_answer_of(sol), thought=_thought_of(sol), agree=None,
+              thinking=((sol or {}).get("response") or {}).get("thinking"),
               elapsed=((sol or {}).get("response") or {}).get("elapsed_seconds"))
         log(console, f"[round 0] Agent {i + 1} ({model}) -> {_answer_of(sol)!r}")
     return solutions
 
 
-def _run_debate_round(question, domain, models, solutions, seed, r, n, console, on_event=None):
+def _run_debate_round(question, domain, models, solutions, seed, r, n, console, on_event=None, think=None):
     """One debate round: every agent sees peers' current answers and may revise."""
     answer_format = ANSWER_FORMATS[domain]
     debate_system = DEBATE.format(answer_format=answer_format)
@@ -224,13 +232,14 @@ def _run_debate_round(question, domain, models, solutions, seed, r, n, console, 
         _emit(on_event, "agent_start", round=r, agent=i, model=model)
         sol = _run_turn(
             model, debate_system, user, DEBATE_SCHEMA,
-            DEBATE_TEMPERATURE, _seed_for(seed, r, i, n),
+            DEBATE_TEMPERATURE, _seed_for(seed, r, i, n), think,
         )
         new_solutions.append(sol if sol is not None else solutions[i])
         kept = new_solutions[-1]
         _emit(on_event, "agent_done", round=r, agent=i, model=model, failed=sol is None,
               answer=_answer_of(kept), thought=_thought_of(kept),
               agree=((kept or {}).get("parsed") or {}).get("agree"),
+              thinking=((sol or {}).get("response") or {}).get("thinking"),
               elapsed=((sol or {}).get("response") or {}).get("elapsed_seconds"))
         log(console, f"[round {r}] Agent {i + 1} ({model}) -> {_answer_of(new_solutions[-1])!r}")
     return new_solutions
