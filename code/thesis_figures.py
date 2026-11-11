@@ -51,6 +51,7 @@ CONFIGS = (
 CONFIG_BY_LABEL = {config.label: config for config in CONFIGS}
 SOLO_LABELS = ("Q", "G")
 DEBATE_CONFIGS = tuple(config for config in CONFIGS if config.condition == "debate")
+DEBATE_ROUNDS = (1, 2, 3)
 
 PAIR_ROWS = (
     ("Q+Q", "Q"),
@@ -64,7 +65,6 @@ PAIR_ROWS = (
 SURFACE = "#ffffff"
 INK = "#0b0b0b"
 INK_SECONDARY = "#52514e"
-MUTED = "#898781"
 GRID = "#e1e0d9"
 AXIS = "#c3c2b7"
 BLUE = "#2a78d6"
@@ -85,7 +85,7 @@ MARKER_LEGEND = (
     ("homogeneous", "debata jednorodna"),
     ("mixed", "debata mieszana"),
 )
-TOKEN_TICKS = (500, 1000, 2000, 5000)
+TOKEN_AXES = {"math": (0, 5000, 1000), "medical": (0, 2500, 500)}
 LABEL_PLACEMENTS = {
     "above": ((0, 7), "center", "bottom"),
     "below": ((0, -7), "center", "top"),
@@ -555,6 +555,131 @@ def build_balance_table(rows):
     return render_table("tab:bilans_debaty", caption, spec, header, body, note)
 
 
+COST_COLUMNS = (
+    "dataset", "config", "part", "item", "tasks", "tokens_per_task", "time_s_per_task",
+    "tokens_share_pct", "time_share_pct", "base_config", "tokens_vs_base", "time_vs_base",
+    "accuracy_pct", "truncated_calls", "truncated_tokens_pct",
+    "ended_tasks", "ended_correct_pct", "ended_abstain_pct",
+)
+
+
+def cost_row(dataset, config, part, item, **values):
+    row = dict.fromkeys(COST_COLUMNS, "")
+    row.update(dataset=dataset, config=config, part=part, item=item, **values)
+    return row
+
+
+def call_seconds(call):
+    return call.get("elapsed_seconds") or 0
+
+
+def sum_cost(calls):
+    return sum(token_count(call) for call in calls), sum(call_seconds(call) for call in calls)
+
+
+def round_calls(record, round_index):
+    return [
+        solution["response"]
+        for round_record in record.get("trace", [])
+        if round_record["round"] == round_index
+        for solution in round_record["solutions"]
+        if solution.get("response")
+    ]
+
+
+def debate_phase_calls(record):
+    return [call for round_index in DEBATE_ROUNDS for call in round_calls(record, round_index)]
+
+
+def model_calls(record, model):
+    return [
+        solution["response"]
+        for round_record in record["trace"]
+        for solution in round_record["solutions"]
+        if solution.get("response") and solution["model"] == model
+    ]
+
+
+def cost_part_row(dataset, config, part, item, per_task_calls, total_tokens, total_seconds, **values):
+    executed = [calls for calls in per_task_calls if calls]
+    tokens, seconds = sum_cost([call for calls in executed for call in calls])
+    count = len(executed)
+    return cost_row(
+        dataset, config, part, item,
+        tasks=count,
+        tokens_per_task=round(tokens / count) if count else "",
+        time_s_per_task=round(seconds / count, 1) if count else "",
+        tokens_share_pct=round(100 * tokens / total_tokens, 1),
+        time_share_pct=round(100 * seconds / total_seconds, 1),
+        **values,
+    )
+
+
+def ended_in_round(records, round_index):
+    ended = [record for record in records if record["debate_rounds"] == round_index]
+    if not ended:
+        return {"ended_tasks": 0, "ended_correct_pct": "", "ended_abstain_pct": ""}
+    return {
+        "ended_tasks": len(ended),
+        "ended_correct_pct": round(100 * sum(record["correct"] is True for record in ended) / len(ended), 2),
+        "ended_abstain_pct": round(100 * sum(bool(record["abstained"]) for record in ended) / len(ended), 2),
+    }
+
+
+def cost_breakdown_rows(data, stats):
+    rows = []
+    for domain in DOMAINS:
+        best = best_solo_label(stats, domain)
+        for config in CONFIGS:
+            records = data[(domain, config.label)]
+            s = stats[(domain, config.label)]
+            calls = [llm_calls(record) for record in records]
+            all_calls = [call for per_task in calls for call in per_task]
+            tokens, seconds = sum_cost(all_calls)
+            truncated = [call for call in all_calls if call.get("done_reason") == "length"]
+            base = {"Q+Q": "Q", "G+G": "G", "Q+G": best}.get(config.label, "")
+            row = cost_row(
+                domain, config.label, "config", "total",
+                tasks=s["n"],
+                tokens_per_task=round(s["tokens_per_task"]),
+                time_s_per_task=round(s["mean_time"], 1),
+                base_config=base,
+                accuracy_pct=round(share(s, "correct"), 1),
+                truncated_calls=len(truncated),
+                truncated_tokens_pct=round(100 * sum(token_count(call) for call in truncated) / tokens, 1),
+            )
+            if base:
+                row["tokens_vs_base"] = round(s["tokens_per_task"] / stats[(domain, base)]["tokens_per_task"], 2)
+                row["time_vs_base"] = round(s["mean_time"] / stats[(domain, base)]["mean_time"], 2)
+            rows.append(row)
+            if config.condition == "solo":
+                for outcome in ("correct", "wrong"):
+                    group = [per_task for record, per_task in zip(records, calls) if outcome_of(record) == outcome]
+                    rows.append(cost_part_row(domain, config.label, "outcome", outcome, group, tokens, seconds))
+                continue
+            rows.append(cost_part_row(
+                domain, config.label, "phase", "independent",
+                [round_calls(record, 0) for record in records], tokens, seconds,
+            ))
+            rows.append(cost_part_row(
+                domain, config.label, "phase", "debate",
+                [debate_phase_calls(record) for record in records], tokens, seconds,
+            ))
+            for round_index in DEBATE_ROUNDS:
+                rows.append(cost_part_row(
+                    domain, config.label, "round", f"round_{round_index}",
+                    [round_calls(record, round_index) for record in records], tokens, seconds,
+                    **ended_in_round(records, round_index),
+                ))
+            if config.kind == "mixed":
+                for label, model in (("Q", QWEN), ("G", GEMMA)):
+                    rows.append(cost_part_row(
+                        domain, config.label, "model", label,
+                        [model_calls(record, model) for record in records], tokens, seconds,
+                    ))
+    return rows
+
+
 def pilot_rows(main_data, pilot_data):
     rows = []
     for domain in DOMAINS:
@@ -718,16 +843,6 @@ def plot_outcome_composition(stats, path):
     plt.close(fig)
 
 
-def efficiency_frontier(points):
-    frontier = []
-    best_accuracy = float("-inf")
-    for point in sorted(points, key=lambda item: item[0]):
-        if point[1] > best_accuracy:
-            frontier.append(point)
-            best_accuracy = point[1]
-    return frontier
-
-
 def has_close_point_above(point, points):
     tokens, accuracy, _ = point
     return any(
@@ -743,8 +858,6 @@ def plot_accuracy_vs_cost(stats, path):
             (stats[(domain, config.label)]["tokens_per_task"], share(stats[(domain, config.label)], "correct"), config)
             for config in CONFIGS
         ]
-        frontier = efficiency_frontier(points)
-        ax.plot([p[0] for p in frontier], [p[1] for p in frontier], color=MUTED, linewidth=1.2, zorder=2)
         for point in points:
             tokens, accuracy, config = point
             ax.plot(tokens, accuracy, linestyle="none", marker=MARKERS[config.kind], markersize=6.5,
@@ -757,14 +870,16 @@ def plot_accuracy_vs_cost(stats, path):
                         ha=horizontal, va=vertical, fontsize=8.5, color=INK)
         style_axes(ax)
         ax.grid(axis="both", color=GRID, linewidth=0.6, linestyle="-")
-        ax.set_xscale("log")
-        ax.set_xlim(300, 9000)
-        ax.set_ylim(55, 90)
-        ax.set_xticks(TOKEN_TICKS)
-        ax.set_xticklabels([f"{tick:,}".replace(",", " ") for tick in TOKEN_TICKS])
+        low, high, step = TOKEN_AXES[domain]
+        ticks = range(low, high, step)
+        ax.set_xlim(low, high)
+        ax.set_ylim(0, 100)
+        ax.set_yticks(range(0, 101, 25))
+        ax.set_xticks(ticks)
+        ax.set_xticklabels([f"{tick:,}".replace(",", " ") for tick in ticks])
         ax.minorticks_off()
         ax.set_title(DOMAIN_TITLES[domain], loc="left", fontsize=10, fontweight="bold", color=INK, pad=6)
-        ax.set_xlabel("Tokeny na zadanie (skala logarytmiczna)", fontsize=9)
+        ax.set_xlabel("Tokeny na zadanie", fontsize=9)
     axes[0].set_ylabel("Poprawne [%]", fontsize=9)
     axes[1].tick_params(labelleft=False)
     handles = [
@@ -772,8 +887,7 @@ def plot_accuracy_vs_cost(stats, path):
                markeredgecolor=SURFACE, markeredgewidth=1.2, label=label)
         for kind, label in MARKER_LEGEND
     ]
-    handles.append(Line2D([], [], color=MUTED, linewidth=1.2, label="granica efektywności"))
-    fig.legend(handles=handles, loc="lower center", ncol=4, frameon=False, fontsize=9,
+    fig.legend(handles=handles, loc="lower center", ncol=3, frameon=False, fontsize=9,
                handlelength=1.8, columnspacing=1.8, bbox_to_anchor=(0.5, 0.0))
     fig.subplots_adjust(left=0.085, right=0.995, top=0.92, bottom=0.25, wspace=0.05)
     fig.savefig(path, dpi=300)
@@ -804,13 +918,16 @@ def main():
     write_csv(RESULTS_DIR / "debate_balance.csv", balance)
     write_text(TABLES_DIR / "bilans-debaty.tex", build_balance_table(balance))
 
+    cost = cost_breakdown_rows(main_data, stats)
+    write_csv(RESULTS_DIR / "cost_breakdown.csv", cost)
+
     pilot = pilot_rows(main_data, pilot_data)
     write_csv(RESULTS_DIR / "pilot_thinking.csv", pilot)
     write_text(TABLES_DIR / "pilotaz-rozumowanie.tex", build_pilot_table(pilot))
 
     plot_outcome_composition(stats, FIGURES_DIR / "rys-sklad-wynikow.png")
     plot_accuracy_vs_cost(stats, FIGURES_DIR / "rys-dokladnosc-koszt.png")
-    print("Zapisano 4 tabele (text/tabels), 2 rysunki (text/figures) i 4 pliki csv (code/results)")
+    print("Zapisano 4 tabele (text/tabels), 2 rysunki (text/figures) i 5 plików csv (code/results)")
 
 
 if __name__ == "__main__":
