@@ -873,8 +873,7 @@ def plot_accuracy_vs_cost(stats, path):
         low, high, step = TOKEN_AXES[domain]
         ticks = range(low, high, step)
         ax.set_xlim(low, high)
-        ax.set_ylim(0, 100)
-        ax.set_yticks(range(0, 101, 25))
+        ax.set_ylim(55, 90)
         ax.set_xticks(ticks)
         ax.set_xticklabels([f"{tick:,}".replace(",", " ") for tick in ticks])
         ax.minorticks_off()
