@@ -114,7 +114,9 @@ class App(tk.Tk):
     def _build_question(self):
         card = self._card("Pytanie")
         self.question = tk.Text(card, height=4, wrap="word", font=("Segoe UI", 11), relief="solid",
-                                borderwidth=1, highlightthickness=0, padx=8, pady=6)
+                                borderwidth=1, highlightthickness=0, padx=8, pady=6,
+                                bg=CARD, fg="#111827", insertbackground="#111827",
+                                selectbackground="#bfdbfe", selectforeground="#111827")
         self.question.pack(fill="x")
         self.question.bind("<Control-Return>", lambda e: (self._start(), "break")[1])
 
@@ -129,7 +131,10 @@ class App(tk.Tk):
         card = ttk.LabelFrame(self, text=" Przebieg ", style="Card.TLabelframe", padding=10)
         card.pack(fill="both", expand=True, padx=14, pady=(10, 0))
         self.log = scrolledtext.ScrolledText(card, wrap="word", font=("Segoe UI", 10), relief="flat",
-                                             borderwidth=0, padx=6, pady=4, state="disabled")
+                                             borderwidth=0, padx=6, pady=4, state="disabled",
+                                             highlightthickness=0, highlightbackground=CARD, highlightcolor=CARD,
+                                             bg=CARD, fg="#111827", insertbackground="#111827",
+                                             selectbackground="#bfdbfe", selectforeground="#111827")
         self.log.pack(fill="both", expand=True)
         self.log.tag_configure("round", font=("Segoe UI Semibold", 11), foreground="#111827",
                                spacing1=14, spacing3=4)
