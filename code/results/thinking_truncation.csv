@@ -1,0 +1,13 @@
+dataset,model,status,calls,empty_content,mean_generated_tokens,repeated_fragment_calls,repeated_fragment_pct,revision_words,revision_words_per_1k_tokens,max_line_repeat,max_line_repeat_task
+math,Q,truncated,41,38,3590,0,0.0,432,2.94,3,math-test/algebra/1349.json
+math,Q,finished,35,0,1902,0,0.0,155,2.33,3,math-test/precalculus/927.json
+math,G,truncated,75,75,3628,36,48.0,1453,5.34,55,math-test/precalculus/927.json
+math,G,finished,17,0,1637,2,11.8,50,1.8,7,math-test/algebra/2584.json
+medical,Q,truncated,14,14,3833,0,0.0,225,4.19,6,med-cd3ee63d-d3f2-44ea-a18c-dbf9bf1c57cf
+medical,Q,finished,36,0,1775,0,0.0,205,3.21,2,med-00667233-3ef5-4759-bac2-850f41c6cdfc
+medical,G,truncated,45,45,3825,38,84.4,2621,15.23,120,med-d384e3c5-1ec0-4c7d-b7c2-ec9fd223f3e3
+medical,G,finished,4,0,742,0,0.0,6,2.02,1,med-070ff387-f612-43ac-a23e-ab3e8ed192b4
+all,Q,truncated,55,52,3651,0,0.0,657,3.27,6,med-cd3ee63d-d3f2-44ea-a18c-dbf9bf1c57cf
+all,Q,finished,71,0,1837,0,0.0,360,2.76,3,math-test/precalculus/927.json
+all,G,truncated,120,120,3702,74,61.7,4074,9.17,120,med-d384e3c5-1ec0-4c7d-b7c2-ec9fd223f3e3
+all,G,finished,21,0,1466,2,9.5,56,1.82,7,math-test/algebra/2584.json

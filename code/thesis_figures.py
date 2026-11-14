@@ -1,7 +1,9 @@
 import csv
 import json
 import math
+import re
 import sys
+from collections import Counter
 from pathlib import Path
 from typing import NamedTuple
 
@@ -52,6 +54,15 @@ CONFIG_BY_LABEL = {config.label: config for config in CONFIGS}
 SOLO_LABELS = ("Q", "G")
 DEBATE_CONFIGS = tuple(config for config in CONFIGS if config.condition == "debate")
 DEBATE_ROUNDS = (1, 2, 3)
+
+THINKING_MODEL_LABELS = {QWEN: "Q", GEMMA: "G"}
+REVISION_PATTERN = re.compile(
+    r"\b(Wait|Actually|Hmm|Alternatively|Let me (?:re-?check|double-?check|re-?evaluate|re-?read|re-?think|think about this again|verify)|double-?check|re-?check|re-?evaluate|On second thought)\b",
+    re.IGNORECASE,
+)
+REPEAT_FRAGMENT_CHARS = 250
+REPEAT_SCAN_STEP = 50
+MIN_REPEATED_LINE_CHARS = 40
 
 PAIR_ROWS = (
     ("Q+Q", "Q"),
@@ -754,6 +765,81 @@ def build_pilot_table(rows):
     return render_table("tab:pilotaz_rozumowanie", caption, spec, header, body, note)
 
 
+def has_repeated_fragment(text):
+    last_start = max(0, len(text) - 2 * REPEAT_FRAGMENT_CHARS)
+    for start in range(0, last_start, REPEAT_SCAN_STEP):
+        fragment = text[start:start + REPEAT_FRAGMENT_CHARS]
+        if text.find(fragment, start + REPEAT_FRAGMENT_CHARS) != -1:
+            return True
+    return False
+
+
+def max_line_repeat(text):
+    lines = (line.strip() for line in text.split("\n"))
+    counts = Counter(line for line in lines if len(line) >= MIN_REPEATED_LINE_CHARS)
+    return max(counts.values()) if counts else 0
+
+
+def new_thinking_group():
+    return {
+        "calls": 0,
+        "empty_content": 0,
+        "eval_tokens": 0,
+        "repeated_fragment": 0,
+        "revision_words": 0,
+        "max_line_repeat": 0,
+        "max_line_repeat_task": "",
+    }
+
+
+def add_thinking_call(group, call, task_id):
+    text = call.get("thinking") or ""
+    group["calls"] += 1
+    group["empty_content"] += not (call.get("content") or "").strip()
+    group["eval_tokens"] += call.get("eval_count") or 0
+    group["repeated_fragment"] += has_repeated_fragment(text)
+    group["revision_words"] += len(REVISION_PATTERN.findall(text))
+    repeat = max_line_repeat(text)
+    if repeat > group["max_line_repeat"]:
+        group["max_line_repeat"] = repeat
+        group["max_line_repeat_task"] = task_id
+
+
+def thinking_truncation_rows(pilot_data):
+    groups = {}
+    for (domain, _), records in pilot_data.items():
+        for record in records:
+            for call in llm_calls(record):
+                model = THINKING_MODEL_LABELS[call["model"]]
+                status = "truncated" if call.get("done_reason") == "length" else "finished"
+                for scope in (domain, "all"):
+                    group = groups.setdefault((scope, model, status), new_thinking_group())
+                    add_thinking_call(group, call, record["task_id"])
+    rows = []
+    for scope in (*DOMAINS, "all"):
+        for model in THINKING_MODEL_LABELS.values():
+            for status in ("truncated", "finished"):
+                group = groups.get((scope, model, status))
+                if group is None:
+                    continue
+                calls = group["calls"]
+                rows.append({
+                    "dataset": scope,
+                    "model": model,
+                    "status": status,
+                    "calls": calls,
+                    "empty_content": group["empty_content"],
+                    "mean_generated_tokens": round(group["eval_tokens"] / calls),
+                    "repeated_fragment_calls": group["repeated_fragment"],
+                    "repeated_fragment_pct": round(100 * group["repeated_fragment"] / calls, 1),
+                    "revision_words": group["revision_words"],
+                    "revision_words_per_1k_tokens": round(1000 * group["revision_words"] / group["eval_tokens"], 2),
+                    "max_line_repeat": group["max_line_repeat"],
+                    "max_line_repeat_task": group["max_line_repeat_task"],
+                })
+    return rows
+
+
 def configure_matplotlib():
     plt.rcParams.update({
         "font.family": "serif",
@@ -922,11 +1008,12 @@ def main():
 
     pilot = pilot_rows(main_data, pilot_data)
     write_csv(RESULTS_DIR / "pilot_thinking.csv", pilot)
+    write_csv(RESULTS_DIR / "thinking_truncation.csv", thinking_truncation_rows(pilot_data))
     write_text(TABLES_DIR / "pilotaz-rozumowanie.tex", build_pilot_table(pilot))
 
     plot_outcome_composition(stats, FIGURES_DIR / "rys-sklad-wynikow.png")
     plot_accuracy_vs_cost(stats, FIGURES_DIR / "rys-dokladnosc-koszt.png")
-    print("Zapisano 4 tabele (text/tabels), 2 rysunki (text/figures) i 5 plików csv (code/results)")
+    print("Zapisano 4 tabele (text/tabels), 2 rysunki (text/figures) i 6 plików csv (code/results)")
 
 
 if __name__ == "__main__":
