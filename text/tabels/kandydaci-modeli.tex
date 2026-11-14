@@ -1,0 +1,47 @@
+% !TEX root = ../main.tex
+\begin{table}[H]
+    \centering
+    \caption{Modele rozważane w projekcie}
+    \label{tab:kandydaci_modeli}
+
+    \small
+    \setlength{\tabcolsep}{7pt}
+    \renewcommand{\arraystretch}{1.35}
+    \begin{tabular}{|p{3.8cm}|p{2.3cm}|p{2.3cm}|>{\raggedright\arraybackslash}p{5.3cm}|}
+        \hline
+        \rowcolor{gray!20}
+        \textbf{Model} & \textbf{Twórca} & \textbf{Parametry} & \textbf{Decyzja i powód} \\ \hline
+        \textbf{gemma4:12b} &
+        \textbf{Google} &
+        \textbf{12 mld} &
+        \textbf{Wybrany.} Najnowsza generacja rodziny Gemma, dobra jakość na zadaniach matematycznych, mieści się w limicie pamięci. \\ \hline
+        \textbf{qwen3.5:9b} &
+        \textbf{Alibaba} &
+        \textbf{9 mld} &
+        \textbf{Wybrany.} Najnowsza generacja rodziny Qwen, dobra jakość na zadaniach matematycznych, inna rodzina niż Gemma. \\ \hline
+        llama3.1:8b &
+        Meta &
+        8 mld &
+        Odrzucony. Wyraźnie słabsza jakość odpowiedzi. \\ \hline
+        qwen2.5:7b &
+        Alibaba &
+        7 mld &
+        Odrzucony. Jakość przeciętna oraz starsza generacja względem Qwen3.5. \\ \hline
+        gemma2:9b &
+        Google &
+        9 mld &
+        Odrzucony. Jakość przeciętna oraz starsza generacja względem Gemma 4. \\ \hline
+        gemma2:2b &
+        Google &
+        2 mld &
+        Odrzucony. Częstsze błędy i trudności z zachowaniem wymaganego formatu odpowiedzi. \\ \hline
+        phi4-mini &
+        Microsoft &
+        3,8 mld &
+        Odrzucony. Częstsze błędy i trudności z zachowaniem wymaganego formatu odpowiedzi. \\ \hline
+        deepseek-r1:14b &
+        DeepSeek-AI &
+        14 mld &
+        Odrzucony. Bardzo dobre wyniki w matematyce, zbliżone do wybranych modeli, ale wyższe zużycie pamięci. \\ \hline
+    \end{tabular}
+\end{table}

@@ -1,0 +1,18 @@
+dataset,condition,models,n,correct,wrong,abstain,null,correct_%,wrong_%,abstain_%,null_%,correct_%_answered,avg_time_s
+math,solo,gemma4:12b,250,195,33,0,22,78.0,13.2,0.0,8.8,85.5,27.8
+math,solo,qwen3.5:9b,250,152,89,0,9,60.8,35.6,0.0,3.6,63.1,13.5
+math,debate,qwen3.5:9b + gemma4:12b,250,214,22,14,0,85.6,8.8,5.6,0.0,90.7,103.7
+math,debate,gemma4:12b + gemma4:12b,250,203,31,16,0,81.2,12.4,6.4,0.0,86.8,125.2
+math,debate,qwen3.5:9b + qwen3.5:9b,250,180,65,5,0,72.0,26.0,2.0,0.0,73.5,52.9
+medical,solo,qwen3.5:9b,250,166,82,0,2,66.4,32.8,0.0,0.8,66.9,7.8
+medical,solo,gemma4:12b,250,151,96,0,3,60.4,38.4,0.0,1.2,61.1,8.5
+medical,debate,qwen3.5:9b + qwen3.5:9b,250,175,68,7,0,70.0,27.2,2.8,0.0,72.0,19.7
+medical,debate,qwen3.5:9b + gemma4:12b,250,170,69,11,0,68.0,27.6,4.4,0.0,71.1,34.8
+medical,debate,gemma4:12b + gemma4:12b,250,156,94,0,0,62.4,37.6,0.0,0.0,62.4,16.2
+thinking_math,solo,qwen3.5:9b,10,7,0,0,3,70.0,0.0,0.0,30.0,100.0,78.5
+thinking_math,solo,gemma4:12b,10,4,0,0,6,40.0,0.0,0.0,60.0,100.0,130.7
+thinking_math,debate,qwen3.5:9b + qwen3.5:9b,10,8,0,2,0,80.0,0.0,20.0,0.0,100.0,384.5
+thinking_math,debate,qwen3.5:9b + gemma4:12b,10,5,0,5,0,50.0,0.0,50.0,0.0,100.0,649.9
+thinking_math,debate,gemma4:12b + gemma4:12b,10,4,0,6,0,40.0,0.0,60.0,0.0,100.0,901.6
+thinking_medical,solo,qwen3.5:9b,50,26,10,0,14,52.0,20.0,0.0,28.0,72.2,66.6
+thinking_medical,solo,gemma4:12b,49,3,1,0,45,6.1,2.0,0.0,91.8,75.0,150.5
