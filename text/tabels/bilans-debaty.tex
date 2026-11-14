@@ -7,23 +7,23 @@
     \setlength{\tabcolsep}{2.5pt}
     \renewcommand{\arraystretch}{1.35}
     \sbox0{%
-    \begin{tabular}{|>{\centering\arraybackslash}p{2.0cm}|>{\centering\arraybackslash}p{1.4cm}|>{\centering\arraybackslash}p{1.3cm}|>{\centering\arraybackslash}p{1.9cm}|>{\centering\arraybackslash}p{1.3cm}|>{\centering\arraybackslash}p{2.7cm}|>{\centering\arraybackslash}p{1.3cm}|>{\centering\arraybackslash}p{1.9cm}|}
+    \begin{tabular}{|>{\centering\arraybackslash}p{2.0cm}|>{\centering\arraybackslash}p{1.4cm}|>{\centering\arraybackslash}p{1.3cm}|>{\centering\arraybackslash}p{1.9cm}|>{\centering\arraybackslash}p{1.3cm}|>{\centering\arraybackslash}p{1.9cm}|>{\centering\arraybackslash}p{1.3cm}|>{\centering\arraybackslash}p{1.9cm}|}
         \hline
         \rowcolor{gray!20}
-        \multicolumn{2}{|c|}{} & \multicolumn{2}{c|}{\textbf{Zgoda od razu}} & \multicolumn{2}{c|}{\textbf{Uratowane}} & \multicolumn{2}{c|}{\textbf{Utracone}} \\ \cline{3-8}
+        \multicolumn{2}{|c|}{} & \multicolumn{2}{c|}{\shortstack{\textbf{Zgoda}\\\textbf{od razu}}} & \multicolumn{2}{c|}{\shortstack{\textbf{Żaden model}\\\textbf{poprawny}}} & \multicolumn{2}{c|}{\shortstack{\textbf{Jeden model}\\\textbf{poprawny}}} \\ \cline{3-8}
         \rowcolor{gray!20}
-        \textbf{Zbiór} & \textbf{Debata} & \textbf{razem} & \textbf{w tym poprawna} & \textbf{razem} & \textbf{w tym po braku odpowiedzi} & \textbf{razem} & \textbf{w tym abstain} \\ \hline
-        Matematyka & Q+Q & 185 & 134 & 19 & 5 & 1 & 1 \\ \cline{2-8}
-         & Q+G & 141 & 132 & 10 & 7 & 1 & 1 \\ \cline{2-8}
-         & G+G & 207 & 185 & 8 & 8 & 3 & 2 \\ \hline
-        Medycyna & Q+Q & 220 & 163 & 0 & 0 & 11 & 3 \\ \cline{2-8}
-         & Q+G & 160 & 129 & 1 & 0 & 34 & 10 \\ \cline{2-8}
-         & G+G & 229 & 150 & 1 & 0 & 6 & 0 \\ \hline
+        \textbf{Zbiór} & \textbf{Debata} & \textbf{razem} & \textbf{w tym poprawna} & \textbf{razem} & \textbf{w tym uratowane} & \textbf{razem} & \textbf{w tym utracone} \\ \hline
+        Matematyka & Q+Q & 185 & 134 & 37 & 19 & 28 & 1 \\ \cline{2-8}
+         & Q+G & 141 & 132 & 36 & 10 & 73 & 1 \\ \cline{2-8}
+         & G+G & 207 & 185 & 30 & 8 & 13 & 3 \\ \hline
+        Medycyna & Q+Q & 220 & 163 & 7 & 0 & 23 & 11 \\ \cline{2-8}
+         & Q+G & 160 & 129 & 16 & 1 & 74 & 34 \\ \cline{2-8}
+         & G+G & 229 & 150 & 10 & 1 & 11 & 6 \\ \hline
     \end{tabular}}
     \usebox{0}
     \par\smallskip
     \begin{minipage}{\wd0}
         \raggedright\footnotesize
-        Zgoda od razu -- zadania, w których oba modele podały równoważne odpowiedzi w rundzie niezależnej, przed debatą. Uratowane -- zadania, w których żaden model nie podał poprawnej odpowiedzi w rundzie niezależnej, a wynik końcowy jest poprawny; „po braku odpowiedzi” -- gdy co najmniej jeden model nie zwrócił wtedy odczytanej odpowiedzi. Utracone -- zadania, w których co najmniej jeden model podał poprawną odpowiedź w rundzie niezależnej, a wynik końcowy nie jest poprawny; „abstain” -- gdy debata zakończyła się abstain.
+        Zgoda od razu -- zadania, w których oba modele podały równoważne odpowiedzi w rundzie niezależnej, przed debatą; „w tym poprawna” -- gdy ta odpowiedź jest poprawna. Pozostałe zadania trafiły do debaty. Żaden model poprawny i Jeden model poprawny -- zadania z debatą, w których w rundzie niezależnej poprawną odpowiedź podał odpowiednio żaden albo jeden z modeli. Uratowane -- zadania z pierwszej z tych grup, w których wynik końcowy jest poprawny. Utracone -- zadania z drugiej, w których wynik końcowy nie jest poprawny, także gdy debata zakończyła się abstain.
     \end{minipage}
 \end{table}

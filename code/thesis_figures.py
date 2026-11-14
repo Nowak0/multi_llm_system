@@ -1,7 +1,9 @@
 import csv
 import json
 import math
+import re
 import sys
+from collections import Counter
 from pathlib import Path
 from typing import NamedTuple
 
@@ -51,6 +53,16 @@ CONFIGS = (
 CONFIG_BY_LABEL = {config.label: config for config in CONFIGS}
 SOLO_LABELS = ("Q", "G")
 DEBATE_CONFIGS = tuple(config for config in CONFIGS if config.condition == "debate")
+DEBATE_ROUNDS = (1, 2, 3)
+
+THINKING_MODEL_LABELS = {QWEN: "Q", GEMMA: "G"}
+REVISION_PATTERN = re.compile(
+    r"\b(Wait|Actually|Hmm|Alternatively|Let me (?:re-?check|double-?check|re-?evaluate|re-?read|re-?think|think about this again|verify)|double-?check|re-?check|re-?evaluate|On second thought)\b",
+    re.IGNORECASE,
+)
+REPEAT_FRAGMENT_CHARS = 250
+REPEAT_SCAN_STEP = 50
+MIN_REPEATED_LINE_CHARS = 40
 
 PAIR_ROWS = (
     ("Q+Q", "Q"),
@@ -64,7 +76,6 @@ PAIR_ROWS = (
 SURFACE = "#ffffff"
 INK = "#0b0b0b"
 INK_SECONDARY = "#52514e"
-MUTED = "#898781"
 GRID = "#e1e0d9"
 AXIS = "#c3c2b7"
 BLUE = "#2a78d6"
@@ -85,7 +96,7 @@ MARKER_LEGEND = (
     ("homogeneous", "debata jednorodna"),
     ("mixed", "debata mieszana"),
 )
-TOKEN_TICKS = (500, 1000, 2000, 5000)
+TOKEN_AXES = {"math": (0, 5000, 1000), "medical": (0, 2500, 500)}
 LABEL_PLACEMENTS = {
     "above": ((0, 7), "center", "bottom"),
     "below": ((0, -7), "center", "top"),
@@ -465,6 +476,7 @@ def debate_balance(records, domain):
         "debated_nobody_correct": 0,
         "debated_someone_correct": 0,
         "debated_someone_correct_kept": 0,
+        "debated_someone_correct_other_wrong": 0,
     }
     for record in records:
         first_round = record["trace"][0]["solutions"]
@@ -482,6 +494,7 @@ def debate_balance(records, domain):
             if any(agent_correct):
                 balance["debated_someone_correct"] += 1
                 balance["debated_someone_correct_kept"] += int(final_correct)
+                balance["debated_someone_correct_other_wrong"] += int(not any_no_answer)
             else:
                 balance["debated_nobody_correct"] += 1
         if not any(agent_correct) and final_correct:
@@ -506,14 +519,19 @@ def debate_balance_rows(data):
 
 
 def build_balance_table(rows):
-    group = lambda title: r"\multicolumn{2}{c|}{\textbf{%s}}" % title
+    group = lambda first, second: r"\multicolumn{2}{c|}{\shortstack{\textbf{%s}\\\textbf{%s}}}" % (first, second)
     sub = lambda label: r"\textbf{%s}" % label
     header = header_row(
-        [r"\multicolumn{2}{|c|}{}", group("Zgoda od razu"), group("Uratowane"), group("Utracone")],
+        [
+            r"\multicolumn{2}{|c|}{}",
+            group("Zgoda", "od razu"),
+            group("Żaden model", "poprawny"),
+            group("Jeden model", "poprawny"),
+        ],
         r"\cline{3-8}",
     ) + header_row(
         [sub("Zbiór"), sub("Debata"), sub("razem"), sub("w tym poprawna"), sub("razem"),
-         sub("w tym po braku odpowiedzi"), sub("razem"), sub("w tym abstain")]
+         sub("w tym uratowane"), sub("razem"), sub("w tym utracone")]
     )
     body = []
     for domain in DOMAINS:
@@ -524,27 +542,153 @@ def build_balance_table(rows):
                 row["config"],
                 str(row["agreed_first_round"]),
                 str(row["agreed_first_round_correct"]),
+                str(row["debated_nobody_correct"]),
                 str(row["rescued"]),
-                str(row["rescued_after_no_answer"]),
+                str(row["debated_someone_correct"]),
                 str(row["lost"]),
-                str(row["lost_to_abstain"]),
             ]
+            assert row["agreed_first_round"] + row["debated_nobody_correct"] + row["debated_someone_correct"] == row["n"]
             is_last = index == len(domain_rows) - 1
             body.append(table_row(cells, r"\hline" if is_last else r"\cline{2-8}"))
-    widths = ("1.3cm", "1.9cm", "1.3cm", "2.7cm", "1.3cm", "1.9cm")
+    widths = ("1.3cm", "1.9cm", "1.3cm", "1.9cm", "1.3cm", "1.9cm")
     spec = column_spec(
         [center_column("2.0cm"), center_column("1.4cm")] + [center_column(width) for width in widths]
     )
     caption = r"Bilans debaty względem rundy niezależnej (liczba zadań, dla każdej debaty $n = 250$)"
     note = (
         "Zgoda od razu -- zadania, w których oba modele podały równoważne odpowiedzi w rundzie niezależnej, "
-        "przed debatą. Uratowane -- zadania, w których żaden model nie podał poprawnej odpowiedzi w rundzie "
-        "niezależnej, a wynik końcowy jest poprawny; „po braku odpowiedzi” -- gdy co najmniej jeden model nie "
-        "zwrócił wtedy odczytanej odpowiedzi. Utracone -- zadania, w których co najmniej jeden model podał "
-        "poprawną odpowiedź w rundzie niezależnej, a wynik końcowy nie jest poprawny; „abstain” -- gdy debata "
-        "zakończyła się abstain."
+        "przed debatą; „w tym poprawna” -- gdy ta odpowiedź jest poprawna. Pozostałe zadania trafiły do debaty. "
+        "Żaden model poprawny i Jeden model poprawny -- zadania z debatą, w których w rundzie niezależnej "
+        "poprawną odpowiedź podał odpowiednio żaden albo jeden z modeli. Uratowane -- zadania z pierwszej z tych "
+        "grup, w których wynik końcowy jest poprawny. Utracone -- zadania z drugiej, w których wynik końcowy nie "
+        "jest poprawny, także gdy debata zakończyła się abstain."
     )
     return render_table("tab:bilans_debaty", caption, spec, header, body, note)
+
+
+COST_COLUMNS = (
+    "dataset", "config", "part", "item", "tasks", "tokens_per_task", "time_s_per_task",
+    "tokens_share_pct", "time_share_pct", "base_config", "tokens_vs_base", "time_vs_base",
+    "accuracy_pct", "truncated_calls", "truncated_tokens_pct",
+    "ended_tasks", "ended_correct_pct", "ended_abstain_pct",
+)
+
+
+def cost_row(dataset, config, part, item, **values):
+    row = dict.fromkeys(COST_COLUMNS, "")
+    row.update(dataset=dataset, config=config, part=part, item=item, **values)
+    return row
+
+
+def call_seconds(call):
+    return call.get("elapsed_seconds") or 0
+
+
+def sum_cost(calls):
+    return sum(token_count(call) for call in calls), sum(call_seconds(call) for call in calls)
+
+
+def round_calls(record, round_index):
+    return [
+        solution["response"]
+        for round_record in record.get("trace", [])
+        if round_record["round"] == round_index
+        for solution in round_record["solutions"]
+        if solution.get("response")
+    ]
+
+
+def debate_phase_calls(record):
+    return [call for round_index in DEBATE_ROUNDS for call in round_calls(record, round_index)]
+
+
+def model_calls(record, model):
+    return [
+        solution["response"]
+        for round_record in record["trace"]
+        for solution in round_record["solutions"]
+        if solution.get("response") and solution["model"] == model
+    ]
+
+
+def cost_part_row(dataset, config, part, item, per_task_calls, total_tokens, total_seconds, **values):
+    executed = [calls for calls in per_task_calls if calls]
+    tokens, seconds = sum_cost([call for calls in executed for call in calls])
+    count = len(executed)
+    return cost_row(
+        dataset, config, part, item,
+        tasks=count,
+        tokens_per_task=round(tokens / count) if count else "",
+        time_s_per_task=round(seconds / count, 1) if count else "",
+        tokens_share_pct=round(100 * tokens / total_tokens, 1),
+        time_share_pct=round(100 * seconds / total_seconds, 1),
+        **values,
+    )
+
+
+def ended_in_round(records, round_index):
+    ended = [record for record in records if record["debate_rounds"] == round_index]
+    if not ended:
+        return {"ended_tasks": 0, "ended_correct_pct": "", "ended_abstain_pct": ""}
+    return {
+        "ended_tasks": len(ended),
+        "ended_correct_pct": round(100 * sum(record["correct"] is True for record in ended) / len(ended), 2),
+        "ended_abstain_pct": round(100 * sum(bool(record["abstained"]) for record in ended) / len(ended), 2),
+    }
+
+
+def cost_breakdown_rows(data, stats):
+    rows = []
+    for domain in DOMAINS:
+        best = best_solo_label(stats, domain)
+        for config in CONFIGS:
+            records = data[(domain, config.label)]
+            s = stats[(domain, config.label)]
+            calls = [llm_calls(record) for record in records]
+            all_calls = [call for per_task in calls for call in per_task]
+            tokens, seconds = sum_cost(all_calls)
+            truncated = [call for call in all_calls if call.get("done_reason") == "length"]
+            base = {"Q+Q": "Q", "G+G": "G", "Q+G": best}.get(config.label, "")
+            row = cost_row(
+                domain, config.label, "config", "total",
+                tasks=s["n"],
+                tokens_per_task=round(s["tokens_per_task"]),
+                time_s_per_task=round(s["mean_time"], 1),
+                base_config=base,
+                accuracy_pct=round(share(s, "correct"), 1),
+                truncated_calls=len(truncated),
+                truncated_tokens_pct=round(100 * sum(token_count(call) for call in truncated) / tokens, 1),
+            )
+            if base:
+                row["tokens_vs_base"] = round(s["tokens_per_task"] / stats[(domain, base)]["tokens_per_task"], 2)
+                row["time_vs_base"] = round(s["mean_time"] / stats[(domain, base)]["mean_time"], 2)
+            rows.append(row)
+            if config.condition == "solo":
+                for outcome in ("correct", "wrong"):
+                    group = [per_task for record, per_task in zip(records, calls) if outcome_of(record) == outcome]
+                    rows.append(cost_part_row(domain, config.label, "outcome", outcome, group, tokens, seconds))
+                continue
+            rows.append(cost_part_row(
+                domain, config.label, "phase", "independent",
+                [round_calls(record, 0) for record in records], tokens, seconds,
+            ))
+            rows.append(cost_part_row(
+                domain, config.label, "phase", "debate",
+                [debate_phase_calls(record) for record in records], tokens, seconds,
+            ))
+            for round_index in DEBATE_ROUNDS:
+                rows.append(cost_part_row(
+                    domain, config.label, "round", f"round_{round_index}",
+                    [round_calls(record, round_index) for record in records], tokens, seconds,
+                    **ended_in_round(records, round_index),
+                ))
+            if config.kind == "mixed":
+                for label, model in (("Q", QWEN), ("G", GEMMA)):
+                    rows.append(cost_part_row(
+                        domain, config.label, "model", label,
+                        [model_calls(record, model) for record in records], tokens, seconds,
+                    ))
+    return rows
 
 
 def pilot_rows(main_data, pilot_data):
@@ -619,6 +763,81 @@ def build_pilot_table(rows):
         "Liczby w kolumnach Poprawne, Błędne i Brak odpowiedzi to liczby zadań."
     )
     return render_table("tab:pilotaz_rozumowanie", caption, spec, header, body, note)
+
+
+def has_repeated_fragment(text):
+    last_start = max(0, len(text) - 2 * REPEAT_FRAGMENT_CHARS)
+    for start in range(0, last_start, REPEAT_SCAN_STEP):
+        fragment = text[start:start + REPEAT_FRAGMENT_CHARS]
+        if text.find(fragment, start + REPEAT_FRAGMENT_CHARS) != -1:
+            return True
+    return False
+
+
+def max_line_repeat(text):
+    lines = (line.strip() for line in text.split("\n"))
+    counts = Counter(line for line in lines if len(line) >= MIN_REPEATED_LINE_CHARS)
+    return max(counts.values()) if counts else 0
+
+
+def new_thinking_group():
+    return {
+        "calls": 0,
+        "empty_content": 0,
+        "eval_tokens": 0,
+        "repeated_fragment": 0,
+        "revision_words": 0,
+        "max_line_repeat": 0,
+        "max_line_repeat_task": "",
+    }
+
+
+def add_thinking_call(group, call, task_id):
+    text = call.get("thinking") or ""
+    group["calls"] += 1
+    group["empty_content"] += not (call.get("content") or "").strip()
+    group["eval_tokens"] += call.get("eval_count") or 0
+    group["repeated_fragment"] += has_repeated_fragment(text)
+    group["revision_words"] += len(REVISION_PATTERN.findall(text))
+    repeat = max_line_repeat(text)
+    if repeat > group["max_line_repeat"]:
+        group["max_line_repeat"] = repeat
+        group["max_line_repeat_task"] = task_id
+
+
+def thinking_truncation_rows(pilot_data):
+    groups = {}
+    for (domain, _), records in pilot_data.items():
+        for record in records:
+            for call in llm_calls(record):
+                model = THINKING_MODEL_LABELS[call["model"]]
+                status = "truncated" if call.get("done_reason") == "length" else "finished"
+                for scope in (domain, "all"):
+                    group = groups.setdefault((scope, model, status), new_thinking_group())
+                    add_thinking_call(group, call, record["task_id"])
+    rows = []
+    for scope in (*DOMAINS, "all"):
+        for model in THINKING_MODEL_LABELS.values():
+            for status in ("truncated", "finished"):
+                group = groups.get((scope, model, status))
+                if group is None:
+                    continue
+                calls = group["calls"]
+                rows.append({
+                    "dataset": scope,
+                    "model": model,
+                    "status": status,
+                    "calls": calls,
+                    "empty_content": group["empty_content"],
+                    "mean_generated_tokens": round(group["eval_tokens"] / calls),
+                    "repeated_fragment_calls": group["repeated_fragment"],
+                    "repeated_fragment_pct": round(100 * group["repeated_fragment"] / calls, 1),
+                    "revision_words": group["revision_words"],
+                    "revision_words_per_1k_tokens": round(1000 * group["revision_words"] / group["eval_tokens"], 2),
+                    "max_line_repeat": group["max_line_repeat"],
+                    "max_line_repeat_task": group["max_line_repeat_task"],
+                })
+    return rows
 
 
 def configure_matplotlib():
@@ -710,16 +929,6 @@ def plot_outcome_composition(stats, path):
     plt.close(fig)
 
 
-def efficiency_frontier(points):
-    frontier = []
-    best_accuracy = float("-inf")
-    for point in sorted(points, key=lambda item: item[0]):
-        if point[1] > best_accuracy:
-            frontier.append(point)
-            best_accuracy = point[1]
-    return frontier
-
-
 def has_close_point_above(point, points):
     tokens, accuracy, _ = point
     return any(
@@ -735,8 +944,6 @@ def plot_accuracy_vs_cost(stats, path):
             (stats[(domain, config.label)]["tokens_per_task"], share(stats[(domain, config.label)], "correct"), config)
             for config in CONFIGS
         ]
-        frontier = efficiency_frontier(points)
-        ax.plot([p[0] for p in frontier], [p[1] for p in frontier], color=MUTED, linewidth=1.2, zorder=2)
         for point in points:
             tokens, accuracy, config = point
             ax.plot(tokens, accuracy, linestyle="none", marker=MARKERS[config.kind], markersize=6.5,
@@ -749,14 +956,15 @@ def plot_accuracy_vs_cost(stats, path):
                         ha=horizontal, va=vertical, fontsize=8.5, color=INK)
         style_axes(ax)
         ax.grid(axis="both", color=GRID, linewidth=0.6, linestyle="-")
-        ax.set_xscale("log")
-        ax.set_xlim(300, 9000)
+        low, high, step = TOKEN_AXES[domain]
+        ticks = range(low, high, step)
+        ax.set_xlim(low, high)
         ax.set_ylim(55, 90)
-        ax.set_xticks(TOKEN_TICKS)
-        ax.set_xticklabels([f"{tick:,}".replace(",", " ") for tick in TOKEN_TICKS])
+        ax.set_xticks(ticks)
+        ax.set_xticklabels([f"{tick:,}".replace(",", " ") for tick in ticks])
         ax.minorticks_off()
         ax.set_title(DOMAIN_TITLES[domain], loc="left", fontsize=10, fontweight="bold", color=INK, pad=6)
-        ax.set_xlabel("Tokeny na zadanie (skala logarytmiczna)", fontsize=9)
+        ax.set_xlabel("Tokeny na zadanie", fontsize=9)
     axes[0].set_ylabel("Poprawne [%]", fontsize=9)
     axes[1].tick_params(labelleft=False)
     handles = [
@@ -764,8 +972,7 @@ def plot_accuracy_vs_cost(stats, path):
                markeredgecolor=SURFACE, markeredgewidth=1.2, label=label)
         for kind, label in MARKER_LEGEND
     ]
-    handles.append(Line2D([], [], color=MUTED, linewidth=1.2, label="granica efektywności"))
-    fig.legend(handles=handles, loc="lower center", ncol=4, frameon=False, fontsize=9,
+    fig.legend(handles=handles, loc="lower center", ncol=3, frameon=False, fontsize=9,
                handlelength=1.8, columnspacing=1.8, bbox_to_anchor=(0.5, 0.0))
     fig.subplots_adjust(left=0.085, right=0.995, top=0.92, bottom=0.25, wspace=0.05)
     fig.savefig(path, dpi=300)
@@ -796,13 +1003,17 @@ def main():
     write_csv(RESULTS_DIR / "debate_balance.csv", balance)
     write_text(TABLES_DIR / "bilans-debaty.tex", build_balance_table(balance))
 
+    cost = cost_breakdown_rows(main_data, stats)
+    write_csv(RESULTS_DIR / "cost_breakdown.csv", cost)
+
     pilot = pilot_rows(main_data, pilot_data)
     write_csv(RESULTS_DIR / "pilot_thinking.csv", pilot)
+    write_csv(RESULTS_DIR / "thinking_truncation.csv", thinking_truncation_rows(pilot_data))
     write_text(TABLES_DIR / "pilotaz-rozumowanie.tex", build_pilot_table(pilot))
 
     plot_outcome_composition(stats, FIGURES_DIR / "rys-sklad-wynikow.png")
     plot_accuracy_vs_cost(stats, FIGURES_DIR / "rys-dokladnosc-koszt.png")
-    print("Zapisano 4 tabele (text/tabels), 2 rysunki (text/figures) i 4 pliki csv (code/results)")
+    print("Zapisano 4 tabele (text/tabels), 2 rysunki (text/figures) i 6 plików csv (code/results)")
 
 
 if __name__ == "__main__":

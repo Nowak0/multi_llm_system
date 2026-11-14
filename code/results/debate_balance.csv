@@ -1,7 +1,7 @@
-dataset,config,n,agreed_first_round,agreed_first_round_correct,rescued,rescued_after_no_answer,lost,lost_to_abstain,debated,debated_nobody_correct,debated_someone_correct,debated_someone_correct_kept
-math,Q+Q,250,185,134,19,5,1,1,65,37,28,27
-math,Q+G,250,141,132,10,7,1,1,109,36,73,72
-math,G+G,250,207,185,8,8,3,2,43,30,13,10
-medical,Q+Q,250,220,163,0,0,11,3,30,7,23,12
-medical,Q+G,250,160,129,1,0,34,10,90,16,74,40
-medical,G+G,250,229,150,1,0,6,0,21,10,11,5
+dataset,config,n,agreed_first_round,agreed_first_round_correct,rescued,rescued_after_no_answer,lost,lost_to_abstain,debated,debated_nobody_correct,debated_someone_correct,debated_someone_correct_kept,debated_someone_correct_other_wrong
+math,Q+Q,250,185,134,19,5,1,1,65,37,28,27,25
+math,Q+G,250,141,132,10,7,1,1,109,36,73,72,64
+math,G+G,250,207,185,8,8,3,2,43,30,13,10,7
+medical,Q+Q,250,220,163,0,0,11,3,30,7,23,12,21
+medical,Q+G,250,160,129,1,0,34,10,90,16,74,40,73
+medical,G+G,250,229,150,1,0,6,0,21,10,11,5,10
