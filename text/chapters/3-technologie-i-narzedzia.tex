@@ -12,7 +12,7 @@ Do realizacji projektu zdecydowano się na język programowania Python, który d
 W projekcie wykorzystano szereg bibliotek, które skróciły czas implementacji, ograniczając potrzebę pisania kodu od podstaw i zapewniając sprawdzone rozwiązania typowych problemów programistycznych. Obok modułów biblioteki standardowej Pythona (json, random, re, subprocess) użyto bibliotek zewnętrznych, wymienionych w pliku requirements.txt:
 
 \subsubsection{requests}
-Biblioteka do wysyłania zapytań HTTP, uznawana w ekosystemie Pythona za standardowe narzędzie do tego celu. Udostępnia prosty interfejs do wysyłania żądań oraz odbierania i przetwarzania odpowiedzi, w tym danych w formacie JSON. W projekcie służy do komunikacji z interfejsem API platformy Ollama: klasa agenta wysyła zapytanie do punktu końcowego czatu, a następnie odbiera wygenerowaną odpowiedź modelu. Obsłużono przy tym wyjątki zgłaszane przez bibliotekę, dzięki czemu problem z połączeniem nie przerywa działania całego systemu.
+Biblioteka do wysyłania zapytań HTTP, uznawana w ekosystemie Pythona za standardowe narzędzie do tego celu. Udostępnia prosty interfejs do wysyłania żądań oraz odbierania i przetwarzania odpowiedzi, w tym danych w formacie JSON. W projekcie służy do komunikacji z interfejsem API platformy Ollama: klasa klienta wysyła zapytanie do punktu końcowego czatu, a następnie odbiera wygenerowaną odpowiedź modelu. Obsłużono przy tym wyjątki zgłaszane przez bibliotekę, dzięki czemu problem z połączeniem nie przerywa działania całego systemu.
 
 \subsubsection{huggingface\_hub}
 Oficjalna biblioteka kliencka do współpracy z repozytorium Hugging Face Hub, w którym publikowane są modele i zbiory danych wykorzystywane w uczeniu maszynowym. Umożliwia pobieranie plików oraz zarządzanie lokalną pamięcią podręczną, dzięki czemu raz pobrane dane nie muszą być ściągane ponownie. W projekcie nie jest wywoływana bezpośrednio — korzysta z niej biblioteka datasets, pobierając za jej pośrednictwem zbiory danych z repozytorium.
@@ -58,9 +58,27 @@ GitHub to platforma wykorzystująca system Git, która pozwala na przechowywanie
 
 \subsubsection{Ollama API}
 
-Ollama to oprogramowanie umożliwiające lokalne uruchamianie oraz zarządzanie wybranymi modelami językowymi typu LLM (ang. Large Language Model).
+Ollama to oprogramowanie umożliwiające lokalne uruchamianie i zarządzanie modelami językowymi typu LLM (ang. Large Language Model). Pobiera modele z własnej biblioteki, przechowuje je w formacie GGUF i udostępnia przez lokalny serwer HTTP, domyślnie pod adresem \texttt{localhost:11434} \cite{ollama_api_reference}.
 
-W projekcie zostało wykorzystane do obsługi modeli działających bezpośrednio na lokalnej infrastrukturze, co pozwalało na korzystanie z ich możliwości bez konieczności przesyłania danych do zewnętrznych usług. Komunikacja pomiędzy aplikacją a uruchomionymi modelami odbywała się za pośrednictwem interfejsu API, umożliwiając przesyłanie zapytań oraz odbieranie wygenerowanych odpowiedzi.
+Większość modeli w bibliotece Ollamy jest dostępna w wersjach kwantyzowanych. Proces kwantyzacji polega na zapisaniu wag modelu z mniejszą precyzją niż ta, w której model trenowano: zamiast 16 bitów na wagę (FP16 lub BF16) używa się np. 8 albo 4 bitów. Format GGUF pochodzi z projektu llama.cpp, na którym opiera się Ollama, i obsługuje kilka schematów kwantyzacji. Ich nazwy kodują liczbę bitów i metodę: Q8\_0 oznacza 8 bitów na wagę, a Q4\_K\_M 4-bitową kwantyzację typu k-quant w wariancie średnim (ang. medium). W schematach k-quant wagi dzieli się na niewielkie bloki, a każdy blok ma własny współczynnik skali. Dzięki temu wartości odtwarza się z mniejszym błędem niż przy jednej skali dla całego tensora. Wariant M zapisuje z wyższą precyzją część tensorów, na które model jest szczególnie wrażliwy, więc średnio wypada niecałe 5 bitów na wagę.
+
+Zysk jest przede wszystkim pamięciowy. Model o 12 mld parametrów zajmuje w FP16 ok. 24~GB, a w Q4\_K\_M około 7--8 GB, co mieści się w pamięci konsumenckiej karty graficznej albo w RAM zwykłego komputera. Kwantyzacja przyspiesza też generowanie. Przy każdym kolejnym tokenie trzeba odczytać z pamięci wszystkie wagi, a mniejsze wagi to mniej danych do przesłania. Ceną jest utrata jakości, mierzona zwykle wzrostem perpleksji względem modelu niekwantyzowanego. Przy 8 bitach różnica jest pomijalna, przy 4 bitach niewielka, a przy schematach 2- i 3-bitowych wyraźna. Mniejsze modele tracą na kwantyzacji więcej niż duże. Domyślne tagi w bibliotece Ollamy wskazują zwykle wersje Q4\_K\_M, a inne warianty pobiera się, podając tag z nazwą kwantyzacji. W projekcie użyto wersji domyślnych.
+
+W projekcie Ollama jest jedynym kanałem dostępu do modeli, więc przechodzi przez nią każde zapytanie systemu. Modele działały na lokalnej infrastrukturze, bez przesyłania danych do zewnętrznych usług. Dawało to pełną kontrolę nad wersją modelu i parametrami generowania oraz brak opłat za zapytania. Ceną są ograniczenia sprzętowe: rozmiar modeli (tu rzędu 9--12 mld parametrów) i czas generowania zależą od pamięci i mocy obliczeniowej komputera.
+
+Klasa klienta komunikuje się z Ollamą za pomocą biblioteki \texttt{requests}. Wysyła żądanie POST w formacie JSON do punktu końcowego \texttt{/api/chat}, które zawiera:
+\begin{itemize}
+    \item \texttt{model} -- nazwę modelu, który ma odpowiedzieć;
+    \item \texttt{messages} -- listę wiadomości z rolami: \texttt{system} niesie opis roli modelu, a \texttt{user} treść zadania;
+    \item \texttt{options} -- parametry generowania: temperaturę, maksymalną liczbę generowanych tokenów (\texttt{num\_predict}) oraz opcjonalnie ziarno losowości (\texttt{seed}), służące do uzyskiwania powtarzalnych wyników;
+    \item \texttt{stream} ustawione na \texttt{false} -- odpowiedź wraca jako jeden obiekt JSON po zakończeniu generowania, a nie jako strumień fragmentów, co upraszcza dalsze przetwarzanie;
+    \item \texttt{format} -- ogranicza odpowiedź do poprawnego obiektu JSON albo do podanego schematu JSON. Ułatwia to parsowanie i kontrolę struktury, ale nie gwarantuje poprawności merytorycznej odpowiedzi. Dokumentacja zaleca, by w prompcie również polecić modelowi odpowiedź w formacie JSON, i tak robią prompty w projekcie;
+    \item \texttt{think} -- włącza lub wyłącza tryb rozumowania w modelach, które go obsługują. Rozumowanie wraca wtedy w osobnym polu odpowiedzi.
+\end{itemize}
+
+Odpowiedź taka zawiera treść wiadomości, a także metadane: liczbę tokenów promptu (\texttt{prompt\_eval\_count}) i odpowiedzi (\texttt{eval\_count}) oraz czasy ładowania modelu, analizy i generowania promptu, podawane w nanosekundach. Z nich wylicza się szybkość generowania w tokenach na sekundę jako $\texttt{eval\_count} / \texttt{eval\_duration} \cdot 10^{9}$ \cite{ollama_api_reference}. Klasa zwraca te dane razem z treścią i z zmierzonym czasem całego żądania, co pozwala ocenić koszt obliczeniowy każdej odpowiedzi. Żądanie ma limit czasu 600~s, ponieważ generowanie na lokalnym sprzęcie bywa długie. Błędy sieci i błędy HTTP są przechwytywane, więc awaria jednego żądania nie przerywa całego eksperymentu.
+
+Przed uruchomieniem system sprawdza poleceniem \texttt{ollama list}, czy model jest dostępny lokalnie, a jeśli go brakuje, pobiera go poleceniem \texttt{ollama pull}. Domyślnie Ollama trzyma model w pamięci jeszcze przez pięć minut po ostatnim żądaniu (parametr \texttt{keep\_alive}) \cite{ollama_api_reference}. Dlatego po zakończeniu pracy model jest wyładowywany poleceniem \texttt{ollama stop}, co zwalnia RAM dla kolejnego modelu.
 
 \section{Wymagania sprzętowe}
 \label{sec:wymagania-sprzetowe}
