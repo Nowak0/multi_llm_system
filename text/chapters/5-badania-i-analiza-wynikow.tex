@@ -5,8 +5,65 @@
 \section{Wybór benchmarków oraz metryk oceny jakości odpowiedzi}
 
 \subsection{Benchmarki}
+\label{sec:benchmarki}
+
+Do badań wybrano dwa publicznie dostępne zbiory zadań, które stawiają modelom różne wymagania: MATH-500 sprawdza rozumowanie, a MedMCQA wiedzę. Dzięki temu można ustalić, czy debata pomaga niezależnie od rodzaju zadania, czy tylko w jednym z nich. Oba zbiory mają odpowiedź wzorcową, którą da się zweryfikować automatycznie, bez udziału człowieka ani modelu oceniającego.
+
+\subsubsection{MATH-500}
+
+Jest to podzbiór 500 zadań z benchmarku MATH \cite{hendrycksmath2021}, wybrany przez OpenAI na potrzeby pracy \emph{Let's Verify Step by Step} \cite{lightman2023verify}. Zadania pochodzą z konkursów matematycznych. Odpowiedź jest otwarta: model podaje liczbę lub wyrażenie, a nie wybiera spośród gotowych opcji, więc trafienie przypadkiem jest mało prawdopodobne. Rozwiązanie zwykle składa się z kilku kroków, które można sprawdzić po kolei. Taki charakter zadań sprzyja debacie, bo błąd w rozumowaniu jednego modelu może wskazać drugi.
+
+\subsubsection{MedMCQA} 
+
+Zbiór \cite{pmlr-v174-pal22a} zawiera ponad 194~tys. pytań z egzaminów wstępnych AIIMS i NEET~PG. Obejmuje 21 przedmiotów i około 2,4~tys. tematów medycznych. Każde pytanie ma cztery opcje odpowiedzi i dokładnie jedną poprawną. O wyniku decyduje przede wszystkim wiedza, a nie długie rozumowanie. MedMCQA jest więc przeciwieństwem MATH-500 i pozwala sprawdzić, czy debata pomaga także wtedy, gdy zadanie sprowadza się do przypomnienia faktu. Zamknięty format ma jedną konsekwencję: losowy wybór daje 25\% poprawnych odpowiedzi, co należy uwzględniać przy interpretacji wyników.
+
+\subsubsection{Dobór zadań}
+
+Do testu wybrano po 250 zadań z każdego zbioru. Zadania wybrano w orginalnej kolejności występowania w zbiorze, bez losowania. Ze zbioru \texttt{HuggingFaceH4/MATH-500} (split \texttt{test}) i \texttt{openlifescienceai/medmcqa} (split \texttt{validation}). Tak określony podzbiór jest stały, więc eksperyment można dokładnie powtórzyć. Wszystkie konfiguracje modeli rozwiązywały te same zadania, co umożliwia porównania parowane po identyfikatorze zadania (sekcja~\ref{sec:metryki}). Zestawienie zbiorów przedstawia tabela \ref{tab:zestawienie_benchmarkow}.
+
+\input{tabels/zestawienie-benchmarkow.tex}
 
 \subsection{Metryki oceny}
+\label{sec:metryki}
+
+\subsubsection{Ocena odpowiedzi}
+
+Wynik zadania porównuje się z odpowiedzią wzorcową tą samą funkcją oceny w każdej konfiguracji, więc tryb pojedynczego modelu i tryb debaty są oceniane identycznie. W MATH-500 odpowiedzi poddaje się normalizacji według procedury Hendrycksa \cite{hendrycksmath2021}, a jeśli porównanie napisów nie wystarcza, sprawdza się równoważność symboliczną biblioteką \texttt{sympy}. Dzięki temu różne zapisy tej samej wartości, na przykład ułamek zwykły i jego postać w \LaTeX{}u, nie są uznawane za błąd. W MedMCQA porównuje się wskazaną literę z zakresu A--D. Ta sama funkcja równoważności służy w debacie do stwierdzenia, czy modele doszły do zgody.
+
+\subsubsection{Kategorie wyniku}
+
+Każde zadanie kończy się jednym z czterech wyników:
+\begin{itemize}
+    \item \emph{poprawny} -- odpowiedź zgodna z wzorcową,
+    \item \emph{błędny} -- udzielona odpowiedź jest niezgodna z wzorcową,
+    \item \emph{abstain} -- w debacie modele nie doszły do zgody po trzech rundach, więc system nie zwraca odpowiedzi,
+    \item \emph{null} -- w trybie pojedynczego modelu generacja została ucięta po przekroczeniu limitu 6000 tokenów i nie zawiera odpowiedzi.
+\end{itemize}
+
+Taki podział pokazuje, w jaki sposób system zawodzi, czego nie widać w samym odsetku poprawnych odpowiedzi. Przyjęto hierarchię, w której poprawna odpowiedź jest najlepsza, a błędna najgorsza. Abstain uznano za lepszy od błędu i od null, ponieważ system, który nie ma pewności, powinien raczej powstrzymać się od odpowiedzi, niż halucynować.
+
+\subsubsection{Dokładność}
+
+Główną miarą jest dokładność, czyli odsetek zadań rozwiązanych poprawnie spośród wszystkich zebranych ($n = 250$). Abstain i null pozostają w mianowniku, więc dokładność nie zawyża wyniku systemu, który często rezygnuje z odpowiedzi. Uzupełnia ją rozkład czterech kategorii wyniku, a w szczególności odsetek odpowiedzi błędnych.
+
+\subsubsection{Istotność statystyczna}
+
+Wszystkie konfiguracje rozwiązywały te same zadania, więc różnice dokładności oceniono dokładnym testem McNemara \cite{mcnemar1947note}, który działa na parach wyników. Test uwzględnia tylko zadania, w których jedna z porównywanych konfiguracji odpowiedziała poprawnie, a druga nie. Przy $n$ takich zadaniach, z których $k$ rozwiązała tylko ta konfiguracja, która rozwiązała ich mniej, dwustronna wartość $p$ wynosi
+
+\begin{equation}
+    p = \min\!\left(1,\; 2 \cdot 2^{-n} \sum_{i=0}^{k} \binom{n}{i}\right).
+\end{equation}
+
+Przyjęto poziom istotności $\alpha = 0{,}05$. Wyniki zebrano w tabeli~\ref{tab:testy_parowane}.
+
+\subsubsection{Metryki diagnostyczne debaty}
+
+Sama dokładność nie wyjaśnia, jak debata zmienia wynik. Dlatego dla każdej debaty zestawiono wynik końcowy z rundą niezależną, w której modele odpowiadają, nie znając odpowiedzi drugiego. Na tej podstawie wyznaczono odsetek zadań rozstrzygniętych bez debaty oraz liczbę zadań uratowanych i utraconych. Definicje tych miar i ich interpretacja znajdują się w sekcji~\ref{sec:kiedy_debata_pomaga}.
+
+\subsubsection{Koszt obliczeniowy}
+\label{sec:koszt_metryka}
+
+Koszt mierzono na jedno zadanie: liczbą tokenów (wejściowych i wygenerowanych, zliczonych we wszystkich wywołaniach modeli) oraz średnim czasem rozwiązania. Pomiary wykonano na tym samym komputerze, więc wartości dla debaty można bezpośrednio porównywać z wartościami dla pojedynczego modelu (sekcja~\ref{sec:koszt}).
 
 \section{Przeprowadzenie analizy wyników oraz porównanie jakości odpowiedzi w obu trybach działania systemu}
 
