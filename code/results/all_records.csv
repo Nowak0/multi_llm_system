@@ -2647,4 +2647,3 @@ thinking_medical_solo_qwen3.5-9b.jsonl,thinking_medical,solo,qwen3.5:9b,med-d384
 thinking_medical_solo_qwen3.5-9b.jsonl,thinking_medical,solo,qwen3.5:9b,med-62081a5c-5ffc-4a88-9aca-c9e430490e73,A,A,True,False,,76.68419474999246,True,correct
 thinking_medical_solo_qwen3.5-9b.jsonl,thinking_medical,solo,qwen3.5:9b,med-d4e13d7b-8ca9-447e-b93d-e8b86afd017a,C,#no_solution,False,False,,10.719176833998063,True,wrong
 thinking_medical_solo_qwen3.5-9b.jsonl,thinking_medical,solo,qwen3.5:9b,med-33a697bc-627a-4a24-b381-19c181fcdded,A,A,True,False,,21.4651401250012,True,correct
-thinking_medical_solo_qwen3.5-9b.jsonl,thinking_medical,solo,qwen3.5:9b,med-cd3ee63d-d3f2-44ea-a18c-dbf9bf1c57cf,D,,False,False,,109.47900941698754,True,null

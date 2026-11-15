@@ -261,7 +261,7 @@ def header_row(cells, rule=r"\hline"):
     return [r"\rowcolor{gray!20}", table_row(cells, rule)]
 
 
-def render_table(label, caption, spec, header, body, note=None):
+def render_table(label, caption, spec, header, body, note=None, fit_width=False):
     lines = [
         "% !TEX root = ../main.tex",
         r"\begin{table}[H]",
@@ -276,7 +276,10 @@ def render_table(label, caption, spec, header, body, note=None):
         r"        \hline",
     ]
     lines += ["        " + line for line in header + body]
-    lines += [r"    \end{tabular}}", r"    \usebox{0}"]
+    lines += [r"    \end{tabular}}"]
+    if fit_width:
+        lines += [r"    \ifdim\wd0>\textwidth\sbox0{\resizebox{\textwidth}{!}{\usebox0}}\fi"]
+    lines += [r"    \usebox{0}"]
     if note:
         lines += [
             r"    \par\smallskip",
@@ -717,6 +720,8 @@ def pilot_rows(main_data, pilot_data):
                 "on_no_answer": thinking["abstain"] + thinking["null"],
                 "off_time_s": round(baseline["mean_time"], 1),
                 "on_time_s": round(thinking["mean_time"], 1),
+                "off_tokens_per_task": round(baseline["tokens_per_task"]),
+                "on_tokens_per_task": round(thinking["tokens_per_task"]),
             })
     return rows
 
@@ -725,8 +730,8 @@ def build_pilot_table(rows):
     arrow = r" $\rightarrow$ "
     sub = lambda label: r"\textbf{%s}" % label
     header = header_row(
-        [r"\multicolumn{3}{|c|}{}", r"\multicolumn{4}{c|}{\textbf{bez rozumowania%sz rozumowaniem}}" % arrow],
-        r"\cline{4-7}",
+        [r"\multicolumn{3}{|c|}{}", r"\multicolumn{5}{c|}{\textbf{bez rozumowania%sz rozumowaniem}}" % arrow],
+        r"\cline{4-8}",
     ) + header_row([
         sub("Zbiór"),
         sub("Konfiguracja"),
@@ -735,6 +740,7 @@ def build_pilot_table(rows):
         sub("Błędne"),
         sub("Brak odpowiedzi"),
         sub("Średni czas na zadanie [s]"),
+        sub("Tokeny na zadanie"),
     ])
     body = []
     for domain in DOMAINS:
@@ -748,21 +754,23 @@ def build_pilot_table(rows):
                 f"{row['off_wrong']}{arrow}{row['on_wrong']}",
                 f"{row['off_no_answer']}{arrow}{row['on_no_answer']}",
                 f"{decimal(row['off_time_s'])}{arrow}{decimal(row['on_time_s'])}",
+                f"{thousands(row['off_tokens_per_task'])}{arrow}{thousands(row['on_tokens_per_task'])}",
             ]
             is_last = index == len(domain_rows) - 1
-            body.append(table_row(cells, r"\hline" if is_last else r"\cline{2-7}"))
+            body.append(table_row(cells, r"\hline" if is_last else r"\cline{2-8}"))
     spec = column_spec(
-        [center_column("2.0cm"), center_column("2.3cm"), center_column("1.5cm")]
-        + [center_column("1.9cm"), center_column("1.9cm"), center_column("2.0cm"), center_column("2.7cm")]
+        [center_column("2.0cm"), center_column("2.25cm"), center_column("1.2cm")]
+        + [center_column("1.7cm"), center_column("1.4cm"), center_column("1.9cm"), center_column("2.35cm"), center_column("2.7cm")]
     )
     caption = "Tryb bez rozumowania i z rozumowaniem na tych samych zadaniach"
     note = (
-        "W kolumnach Poprawne, Błędne, Brak odpowiedzi i Średni czas każda komórka ma postać „x $\\rightarrow$ y”, "
+        "W kolumnach Poprawne, Błędne, Brak odpowiedzi, Średni czas i Tokeny każda komórka ma postać „x $\\rightarrow$ y”, "
         "gdzie x to wynik bez rozumowania, a y to wynik z rozumowaniem. Brak odpowiedzi oznacza w trybie "
         "jednomodelowym odpowiedź obciętą limitem tokenów (null), a w debacie brak konsensusu (abstain). "
-        "Liczby w kolumnach Poprawne, Błędne i Brak odpowiedzi to liczby zadań."
+        "Liczby w kolumnach Poprawne, Błędne i Brak odpowiedzi to liczby zadań. "
+        "Tokeny to średnia liczba tokenów (prompt i wygenerowana odpowiedź) na zadanie."
     )
-    return render_table("tab:pilotaz_rozumowanie", caption, spec, header, body, note)
+    return render_table("tab:pilotaz_rozumowanie", caption, spec, header, body, note, fit_width=True)
 
 
 def has_repeated_fragment(text):
