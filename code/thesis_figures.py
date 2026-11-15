@@ -104,6 +104,8 @@ LABEL_PLACEMENTS = {
     "left": ((-8, 0), "right", "center"),
 }
 LABEL_PLACEMENT_OVERRIDES = {("math", "Q"): "right", ("medical", "G"): "left"}
+TIME_AXES = {"math": (0, 140, 20), "medical": (0, 40, 10)}
+TIME_LABEL_PLACEMENT_OVERRIDES = {}
 
 
 def darken(color, amount):
@@ -945,18 +947,19 @@ def has_close_point_above(point, points):
     )
 
 
-def plot_accuracy_vs_cost(stats, path):
+def plot_accuracy_vs_cost(stats, path, metric="tokens_per_task", axes_limits=TOKEN_AXES,
+                          xlabel="Tokeny na zadanie", overrides=LABEL_PLACEMENT_OVERRIDES):
     fig, axes = plt.subplots(1, 2, figsize=(FIGURE_WIDTH_INCHES, 3.5), sharey=True)
     for ax, domain in zip(axes, DOMAINS):
         points = [
-            (stats[(domain, config.label)]["tokens_per_task"], share(stats[(domain, config.label)], "correct"), config)
+            (stats[(domain, config.label)][metric], share(stats[(domain, config.label)], "correct"), config)
             for config in CONFIGS
         ]
         for point in points:
             tokens, accuracy, config = point
             ax.plot(tokens, accuracy, linestyle="none", marker=MARKERS[config.kind], markersize=6.5,
                     markerfacecolor=BLUE, markeredgecolor=SURFACE, markeredgewidth=1.2, zorder=3)
-            placement = LABEL_PLACEMENT_OVERRIDES.get(
+            placement = overrides.get(
                 (domain, config.label), "below" if has_close_point_above(point, points) else "above"
             )
             offset, horizontal, vertical = LABEL_PLACEMENTS[placement]
@@ -964,7 +967,7 @@ def plot_accuracy_vs_cost(stats, path):
                         ha=horizontal, va=vertical, fontsize=8.5, color=INK)
         style_axes(ax)
         ax.grid(axis="both", color=GRID, linewidth=0.6, linestyle="-")
-        low, high, step = TOKEN_AXES[domain]
+        low, high, step = axes_limits[domain]
         ticks = range(low, high, step)
         ax.set_xlim(low, high)
         ax.set_ylim(55, 90)
@@ -972,7 +975,7 @@ def plot_accuracy_vs_cost(stats, path):
         ax.set_xticklabels([f"{tick:,}".replace(",", " ") for tick in ticks])
         ax.minorticks_off()
         ax.set_title(DOMAIN_TITLES[domain], loc="left", fontsize=10, fontweight="bold", color=INK, pad=6)
-        ax.set_xlabel("Tokeny na zadanie", fontsize=9)
+        ax.set_xlabel(xlabel, fontsize=9)
     axes[0].set_ylabel("Poprawne [%]", fontsize=9)
     axes[1].tick_params(labelleft=False)
     handles = [
@@ -1021,7 +1024,11 @@ def main():
 
     plot_outcome_composition(stats, FIGURES_DIR / "rys-sklad-wynikow.png")
     plot_accuracy_vs_cost(stats, FIGURES_DIR / "rys-dokladnosc-koszt.png")
-    print("Zapisano 4 tabele (text/tabels), 2 rysunki (text/figures) i 6 plików csv (code/results)")
+    plot_accuracy_vs_cost(
+        stats, FIGURES_DIR / "rys-dokladnosc-czas.png", metric="mean_time", axes_limits=TIME_AXES,
+        xlabel="Średni czas na zadanie [s]", overrides=TIME_LABEL_PLACEMENT_OVERRIDES,
+    )
+    print("Zapisano 4 tabele (text/tabels), 3 rysunki (text/figures) i 6 plików csv (code/results)")
 
 
 if __name__ == "__main__":
