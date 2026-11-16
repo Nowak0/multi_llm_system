@@ -40,12 +40,12 @@
 \label{page:Bibliography}
 \printbibliography
 
-%% -------------------- Wykaz rysunków ------------------------
-\renewcommand{\listfigurename}{Wykaz rysunków}
+%% -------------------- Wykaz wykresów ------------------------
+%% (zastępuje wykaz rysunków — w pracy używane jest środowisko „wykres”)
 \clearpage
 \phantomsection
-\addcontentsline{toc}{chapter}{Wykaz rysunków} % wpis do spisu treści
-\listoffigures
+\addcontentsline{toc}{chapter}{Spis wykresów} % wpis do spisu treści
+\input{backmatter/wykaz-wykresow.tex}
 
 %% -------------------- Wykaz tabel ---------------------------
 \renewcommand{\listtablename}{Wykaz tabel}

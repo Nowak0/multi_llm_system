@@ -1,0 +1,33 @@
+% !TEX root = ../main.tex
+\begin{table}[H]
+    \centering
+    \caption{Odsetek zadań według kategorii wyniku ($n = 250$ zadań na zbiór)}
+    \label{tab:wyniki_zbiorcze}
+    \small
+    \setlength{\tabcolsep}{2.5pt}
+    \renewcommand{\arraystretch}{1.35}
+    \sbox0{%
+    \begin{tabular}{|>{\centering\arraybackslash}p{2.0cm}|>{\centering\arraybackslash}p{2.2cm}|>{\centering\arraybackslash}p{1.7cm}|>{\centering\arraybackslash}p{1.45cm}|>{\centering\arraybackslash}p{1.55cm}|>{\centering\arraybackslash}p{1.25cm}|}
+        \hline
+        \rowcolor{gray!20}
+        \multicolumn{2}{|c|}{} & \multicolumn{4}{c|}{\textbf{Odsetek zadań [\%]}} \\ \cline{3-6}
+        \rowcolor{gray!20}
+        \textbf{Zbiór} & \textbf{Konfiguracja} & \textbf{Poprawne} & \textbf{Błędne} & \textbf{Abstain} & \textbf{Null} \\ \hline
+        Matematyka & Q & 60,8 & 35,6 & -- & 3,6 \\ \cline{2-6}
+         & G & 78,0 & 13,2 & -- & 8,8 \\ \cline{2-6}
+         & Q+Q & 72,0 & 26,0 & 2,0 & -- \\ \cline{2-6}
+         & Q+G & \textbf{85,6} & 8,8 & 5,6 & -- \\ \cline{2-6}
+         & G+G & 81,2 & 12,4 & 6,4 & -- \\ \hline
+        Medycyna & Q & 66,4 & 32,8 & -- & 0,8 \\ \cline{2-6}
+         & G & 60,4 & 38,4 & -- & 1,2 \\ \cline{2-6}
+         & Q+Q & \textbf{70,0} & 27,2 & 2,8 & -- \\ \cline{2-6}
+         & Q+G & 68,0 & 27,6 & 4,4 & -- \\ \cline{2-6}
+         & G+G & 62,4 & 37,6 & 0,0 & -- \\ \hline
+    \end{tabular}}
+    \usebox{0}
+    \par\smallskip
+    \begin{minipage}{\wd0}
+        \raggedright\footnotesize
+        Q -- \texttt{qwen3.5:9b}, G -- \texttt{gemma4:12b}; Q+Q, Q+G i G+G -- debata odpowiednich par modeli. Pogrubiono najwyższy odsetek poprawnych odpowiedzi w zbiorze.
+    \end{minipage}
+\end{table}

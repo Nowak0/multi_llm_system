@@ -14,6 +14,10 @@
 %% jawna opcja języka — bez niej cleveref wywraca się przy polyglossia
 \usepackage[english]{cleveref}
 
+%% własne środowisko pływające „wykres” (pakiet float ładuje klasa)
+\newfloat{wykres}{htbp}{low}[chapter]
+\floatname{wykres}{Wykres}
+
 %% źródło bibliografii (sam biblatex konfiguruje klasa)
 \addbibresource{bibliography/references.bib}
 
