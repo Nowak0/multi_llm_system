@@ -305,7 +305,7 @@ def write_csv(path, rows):
         writer.writerows(rows)
 
 
-def build_main_table(stats):
+def build_outcome_table(stats):
     best_correct = {
         domain: max(CONFIGS, key=lambda config: stats[(domain, config.label)]["correct"]).label
         for domain in DOMAINS
@@ -314,8 +314,6 @@ def build_main_table(stats):
         [
             r"\multicolumn{2}{|c|}{}",
             r"\multicolumn{4}{c|}{\textbf{Odsetek zadań [\%]}}",
-            r"\textbf{Średni}",
-            r"\textbf{Tokeny}",
         ],
         r"\cline{3-6}",
     ) + header_row([
@@ -325,8 +323,6 @@ def build_main_table(stats):
         r"\textbf{Błędne}",
         r"\textbf{Abstain}",
         r"\textbf{Null}",
-        r"\textbf{czas [s]}",
-        r"\textbf{na zadanie}",
     ])
     body = []
     for domain in DOMAINS:
@@ -342,23 +338,49 @@ def build_main_table(stats):
                 decimal(share(s, "wrong")),
                 DASH if config.condition == "solo" else decimal(share(s, "abstain")),
                 DASH if config.condition == "debate" else decimal(share(s, "null")),
+            ]
+            is_last = index == len(CONFIGS) - 1
+            body.append(table_row(cells, r"\hline" if is_last else r"\cline{2-6}"))
+    spec = column_spec(
+        [center_column("2.0cm"), center_column("2.2cm")]
+        + [center_column(width) for width in ("1.7cm", "1.45cm", "1.55cm", "1.25cm")]
+    )
+    caption = r"Odsetek zadań według kategorii wyniku ($n = 250$ zadań na zbiór)"
+    note = (
+        r"Q -- \texttt{qwen3.5:9b}, G -- \texttt{gemma4:12b}; Q+Q, Q+G i G+G -- debata odpowiednich par modeli. "
+        "Pogrubiono najwyższy odsetek poprawnych odpowiedzi w zbiorze."
+    )
+    return render_table("tab:wyniki_zbiorcze", caption, spec, header, body, note)
+
+
+def build_cost_table(stats):
+    header = header_row([
+        r"\textbf{Zbiór}",
+        r"\textbf{Konfiguracja}",
+        r"\textbf{Średni czas [s]}",
+        r"\textbf{Tokeny na zadanie}",
+    ])
+    body = []
+    for domain in DOMAINS:
+        for index, config in enumerate(CONFIGS):
+            s = stats[(domain, config.label)]
+            cells = [
+                DOMAIN_TITLES[domain] if index == 0 else "",
+                config.label,
                 decimal(s["mean_time"]),
                 thousands(s["tokens_per_task"]),
             ]
             is_last = index == len(CONFIGS) - 1
-            body.append(table_row(cells, r"\hline" if is_last else r"\cline{2-8}"))
+            body.append(table_row(cells, r"\hline" if is_last else r"\cline{2-4}"))
     spec = column_spec(
-        [center_column("2.0cm"), center_column("2.2cm")]
-        + [center_column(width) for width in ("1.7cm", "1.45cm", "1.55cm", "1.25cm")]
-        + [center_column("1.7cm"), center_column("2.0cm")]
+        [center_column("2.0cm"), center_column("2.2cm"), center_column("2.4cm"), center_column("2.4cm")]
     )
-    caption = r"Wyniki zbiorcze dla obu zbiorów danych ($n = 250$ zadań na zbiór)"
+    caption = r"Średni czas rozwiązania i liczba tokenów na zadanie ($n = 250$ zadań na zbiór)"
     note = (
-        r"Q -- \texttt{qwen3.5:9b}, G -- \texttt{gemma4:12b}; Q+Q, Q+G i G+G -- debata odpowiednich par modeli. "
-        "Czas i liczba tokenów dotyczą jednego zadania, a tokeny (wejściowe i wygenerowane) zliczono "
-        "we wszystkich wywołaniach modeli. Pogrubiono najwyższy odsetek poprawnych odpowiedzi w zbiorze."
+        r"Oznaczenia konfiguracji jak w tabeli~\ref{tab:wyniki_zbiorcze}. "
+        "Tokeny (wejściowe i wygenerowane) zliczono we wszystkich wywołaniach modeli."
     )
-    return render_table("tab:wyniki_zbiorcze", caption, spec, header, body, note)
+    return render_table("tab:koszt_zbiorczy", caption, spec, header, body, note)
 
 
 def main_table_rows(stats):
@@ -454,10 +476,10 @@ def build_paired_table(results, stats):
         f"{best_solo_label(stats, domain)} {DOMAIN_LOCATIVE[domain]}" for domain in DOMAINS
     )
     note = (
-        r"A i B -- pierwsza i druga konfiguracja w wierszu; $\Delta$ -- różnica odsetka poprawnych odpowiedzi "
-        r"A $-$ B w punktach procentowych (pp); „tylko A” i „tylko B” -- liczba zadań rozwiązanych poprawnie "
-        r"wyłącznie przez daną konfigurację; p -- wartość p dokładnego testu McNemara, pogrubiona dla "
-        rf"$p < 0{{,}}05$. Lepszy solo: {best}."
+        r"A i B -- pierwsza i druga konfiguracja w kolumnie „Porównanie”; „$\Delta$ [pp]” -- różnica odsetka "
+        r"poprawnych odpowiedzi A $-$ B w punktach procentowych (pp); „tylko A” i „tylko B” -- liczba zadań "
+        r"rozwiązanych poprawnie wyłącznie przez daną konfigurację; „p” -- wartość p dokładnego testu McNemara, "
+        rf"pogrubiona dla $p < 0{{,}}05$. Lepszy solo: {best}."
     )
     return render_table("tab:testy_parowane", caption, spec, header, body, note)
 
@@ -561,12 +583,12 @@ def build_balance_table(rows):
     )
     caption = r"Bilans debaty względem rundy niezależnej (liczba zadań, dla każdej debaty $n = 250$)"
     note = (
-        "Zgoda od razu -- zadania, w których oba modele podały równoważne odpowiedzi w rundzie niezależnej, "
-        "przed debatą; „w tym poprawna” -- gdy ta odpowiedź jest poprawna. Pozostałe zadania trafiły do debaty. "
-        "Żaden model poprawny i Jeden model poprawny -- zadania z debatą, w których w rundzie niezależnej "
-        "poprawną odpowiedź podał odpowiednio żaden albo jeden z modeli. Uratowane -- zadania z pierwszej z tych "
-        "grup, w których wynik końcowy jest poprawny. Utracone -- zadania z drugiej, w których wynik końcowy nie "
-        "jest poprawny, także gdy debata zakończyła się abstain."
+        "„Zgoda od razu” -- oba modele podały równoważne odpowiedzi w rundzie niezależnej, więc debata się nie odbyła; "
+        "„w tym poprawna” -- ta odpowiedź jest poprawna. Pozostałe zadania trafiły do debaty: w grupie "
+        "„Żaden model poprawny” nikt nie podał w rundzie niezależnej poprawnej odpowiedzi, a w grupie "
+        "„Jeden model poprawny” podał ją jeden z modeli. W pierwszej z tych grup „w tym uratowane” oznacza zadania "
+        "z poprawnym wynikiem końcowym, a w drugiej „w tym utracone” -- z niepoprawnym wynikiem końcowym "
+        "(także abstain)."
     )
     return render_table("tab:bilans_debaty", caption, spec, header, body, note)
 
@@ -766,11 +788,11 @@ def build_pilot_table(rows):
     )
     caption = "Tryb bez rozumowania i z rozumowaniem na tych samych zadaniach"
     note = (
-        "W kolumnach Poprawne, Błędne, Brak odpowiedzi, Średni czas i Tokeny każda komórka ma postać „x $\\rightarrow$ y”, "
-        "gdzie x to wynik bez rozumowania, a y to wynik z rozumowaniem. Brak odpowiedzi oznacza w trybie "
-        "jednomodelowym odpowiedź obciętą limitem tokenów (null), a w debacie brak konsensusu (abstain). "
-        "Liczby w kolumnach Poprawne, Błędne i Brak odpowiedzi to liczby zadań. "
-        "Tokeny to średnia liczba tokenów (prompt i wygenerowana odpowiedź) na zadanie."
+        "W kolumnach „Poprawne”, „Błędne”, „Brak odpowiedzi”, „Średni czas na zadanie [s]” i „Tokeny na zadanie” "
+        "każda komórka ma postać $x \\rightarrow y$, gdzie $x$ to wynik bez rozumowania, a $y$ to wynik z rozumowaniem. "
+        "„Brak odpowiedzi” oznacza w trybie jednomodelowym odpowiedź uciętą po wyczerpaniu okna kontekstu (null), "
+        "a w debacie brak konsensusu (abstain). Liczby w kolumnach „Poprawne”, „Błędne” i „Brak odpowiedzi” "
+        "to liczby zadań. „Tokeny na zadanie” to średnia liczba tokenów (prompt i wygenerowana odpowiedź)."
     )
     return render_table("tab:pilotaz_rozumowanie", caption, spec, header, body, note, fit_width=True)
 
@@ -1004,7 +1026,8 @@ def main():
     stats = {key: summarize(records) for key, records in main_data.items()}
 
     write_csv(RESULTS_DIR / "main_table.csv", main_table_rows(stats))
-    write_text(TABLES_DIR / "wyniki-zbiorcze.tex", build_main_table(stats))
+    write_text(TABLES_DIR / "wyniki-zbiorcze.tex", build_outcome_table(stats))
+    write_text(TABLES_DIR / "koszt-zbiorczy.tex", build_cost_table(stats))
 
     paired = paired_results(main_data, stats)
     write_csv(RESULTS_DIR / "paired_tests.csv", paired)

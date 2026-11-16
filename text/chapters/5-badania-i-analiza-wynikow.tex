@@ -7,11 +7,13 @@
 \subsection{Benchmarki}
 \label{sec:benchmarki}
 
-Do badań wybrano dwa publicznie dostępne zbiory zadań, które stawiają modelom różne wymagania: MATH-500 sprawdza rozumowanie, a MedMCQA wiedzę. Dzięki temu można ustalić, czy debata pomaga niezależnie od rodzaju zadania, czy tylko w jednym z nich. Oba zbiory mają odpowiedź wzorcową, którą da się zweryfikować automatycznie, bez udziału człowieka ani modelu oceniającego.
+Do badań wybrano dwa publicznie dostępne zbiory zadań, które stawiają modelom różne wymagania: MATH-500 sprawdza rozumowanie, a MedMCQA wiedzę. Dzięki temu można ustalić, czy debata pomaga niezależnie od rodzaju zadania, czy tylko w jednym z nich. Oba zbiory mają odpowiedź wzorcową, którą da się zweryfikować automatycznie, bez udziału człowieka ani modelu oceniającego. Zestawienie zbiorów przedstawia tabela~\ref{tab:zestawienie_benchmarkow}.
+
+\input{tabels/zestawienie-benchmarkow.tex}
 
 \subsubsection{MATH-500}
 
-Jest to podzbiór 500 zadań z benchmarku MATH \cite{hendrycksmath2021}, wybrany przez OpenAI na potrzeby pracy \emph{Let's Verify Step by Step} \cite{lightman2023verify}. Zadania pochodzą z konkursów matematycznych. Odpowiedź jest otwarta: model podaje liczbę lub wyrażenie, a nie wybiera spośród gotowych opcji, więc trafienie przypadkiem jest mało prawdopodobne. Rozwiązanie zwykle składa się z kilku kroków, które można sprawdzić po kolei. Taki charakter zadań sprzyja debacie, bo błąd w rozumowaniu jednego modelu może wskazać drugi.
+Jest to podzbiór 500 zadań z benchmarku MATH \cite{hendrycksmath2021}, wybrany przez OpenAI na potrzeby pracy \emph{Let's Verify Step by Step} \cite{lightman2023verify}. Zadania pochodzą z konkursów matematycznych. Odpowiedź jest otwarta: model podaje liczbę lub wyrażenie, a nie wybiera spośród gotowych opcji, więc trafienie przypadkiem jest mało prawdopodobne. Rozwiązanie zwykle składa się z kilku kroków, które można sprawdzić po kolei. Taki charakter zadań sprzyja debacie, bo błąd w rozumowaniu jednego modelu może być wskazany przez drugi.
 
 \subsubsection{MedMCQA} 
 
@@ -19,9 +21,7 @@ Zbiór \cite{pmlr-v174-pal22a} zawiera ponad 194\,000 pytań z egzaminów wstęp
 
 \subsubsection{Dobór zadań}
 
-Do testu wybrano po 250 zadań z każdego zbioru: pierwsze 250 w oryginalnej kolejności występowania, bez losowania. Zadania pochodzą ze zbiorów \texttt{HuggingFaceH4/MATH-500} (split \texttt{test}) i \texttt{openlifescienceai/medmcqa} (split \texttt{validation}). Tak określony podzbiór jest stały, więc eksperyment można dokładnie powtórzyć. Wszystkie konfiguracje modeli rozwiązywały te same zadania, co umożliwia porównania parowane po identyfikatorze zadania (sekcja~\ref{sec:metryki}). Zestawienie zbiorów przedstawia tabela \ref{tab:zestawienie_benchmarkow}.
-
-\input{tabels/zestawienie-benchmarkow.tex}
+Do testu wybrano po 250 zadań z każdego zbioru: pierwsze 250 w oryginalnej kolejności występowania, bez losowania. Zadania pochodzą ze zbiorów \texttt{HuggingFaceH4/MATH-500} (split \texttt{test}) i \texttt{openlifescienceai/medmcqa} (split \texttt{validation}). Tak określony podzbiór jest stały, więc eksperyment można dokładnie powtórzyć. Wszystkie konfiguracje modeli rozwiązywały te same zadania, co umożliwia porównania parowane po identyfikatorze zadania (sekcja~\ref{sec:metryki}).
 
 \subsection{Metryki oceny}
 \label{sec:metryki}
@@ -67,7 +67,7 @@ Koszt mierzono na jedno zadanie: liczbą tokenów (wejściowych i wygenerowanych
 
 \section{Przeprowadzenie analizy wyników oraz porównanie jakości odpowiedzi w obu trybach działania systemu}
 
-Analizie poddano pięć konfiguracji systemu na dwóch zbiorach danych, MATH-500 i MedMCQA. We wszystkich konfiguracjach rozwiązano te same 250 zadań z każdego zbioru. Modele \texttt{qwen3.5:9b} i \texttt{gemma4:12b} oznaczono odpowiednio jako Q i G. Tryb pojedynczego modelu (solo) reprezentują Q i G, a tryb współpracy -- debaty jednorodne Q+Q i G+G oraz debata mieszana Q+G. Każdą konfigurację uruchomiono z ustalonym ziarnem. Analizę uporządkowano: kolejne podsekcje omawiają jakość odpowiedzi, warunki, w których debata pomaga, koszt obliczeniowy oraz niepowodzenia generacji.
+Konfiguracje oznaczono skrótami: Q i G to pojedyncze modele \texttt{qwen3.5:9b} i \texttt{gemma4:12b} (tryb solo), a Q+Q, Q+G i G+G -- debaty odpowiednich par modeli. Każda konfiguracja rozwiązała te same 250 zadań z MATH-500 i MedMCQA, z ustalonym ziarnem generatora. Kolejne podsekcje omawiają jakość odpowiedzi, warunki, w których debata pomaga, koszt obliczeniowy, niepowodzenia generacji oraz tryb rozumowania.
 
 \subsection{Jakość odpowiedzi}
 \label{sec:jakosc}
@@ -104,14 +104,18 @@ W matematyce debata działa w sposób naprawczy. We wszystkich trzech konfigurac
 
 W większości zadań wynik ustala się jeszcze przed debatą: modele zgadzają się od razu w matematyce w 185 (Q+Q), 141 (Q+G) i 207 (G+G) zadaniach z 250, a w medycynie odpowiednio w 220, 160 i 229. Wiarygodność zgody zależy od składu pary. Dwa egzemplarze tego samego modelu częściej zgadzają się na odpowiedź błędną: w matematyce w 51 (Q+Q), 9 (Q+G) i 22 (G+G) zadaniach, a w medycynie odpowiednio w 57, 31 i 79. Wśród odpowiedzi uzgodnionych od razu, w debacie mieszanej poprawnych jest 94\% w matematyce i 81\% w medycynie, a w debatach jednorodnych 72\% (Q+Q) i 89\% (G+G) w matematyce oraz 74\% i 66\% w medycynie. Można przypuszczać, że błędy dwóch instancji jednego modelu są silniej skorelowane niż błędy dwóch różnych modeli.
 
-Para mieszana częściej wchodzi w debatę: w matematyce w 109 zadaniach wobec 65 (Q+Q) i 43 (G+G), w medycynie w 90 wobec 30 i 21. O skutku decyduje zbiór. W matematyce poprawna odpowiedź przetrwała debatę prawie za każdym razem (Q+G: 72 z 73), a debata uratowała ponadto 10 zadań. Z tego względu większa liczba debat przekłada się tu na najlepszy wynik. W medycynie poprawna odpowiedź przetrwała debatę w obu parach w około połowie zadań (Q+Q: 12 z 23, Q+G: 40 z 74), w sytuacji gdy ktoś ją miał w rundzie niezależnej. Q+G utraciła więc więcej zadań (34 wobec 11 w Q+Q) głównie dlatego, że częściej debatowała. Te straty w przybliżeniu równoważą zysk z rzadszych zgodnych błędów (31 wobec 57 w Q+Q) i mogą tłumaczyć, dlaczego Q+G nie wyprzedza tam Q+Q. Większa liczba rund debaty jest też źródłem wyższego kosztu pary mieszanej (sekcja~\ref{sec:koszt}).
+Para mieszana częściej wchodzi w debatę: w matematyce w 109 zadaniach wobec 65 (Q+Q) i 43 (G+G), w medycynie w 90 wobec 30 i 21. O skutku decyduje zbiór. W matematyce poprawna odpowiedź przetrwała debatę prawie za każdym razem (Q+G: 72 z 73), a debata uratowała ponadto 10 zadań. Z tego względu większa liczba debat przekłada się tu na najlepszy wynik. W medycynie, gdy ktoś miał poprawną odpowiedź w rundzie niezależnej, przetrwała ona debatę w około połowie zadań w każdej z trzech konfiguracji (Q+Q: 12 z 23, Q+G: 40 z 74, G+G: 5 z 11). Q+G utraciła więc więcej zadań (34 wobec 11 w Q+Q i 6 w G+G) głównie dlatego, że częściej debatowała. Te straty w przybliżeniu równoważą zysk z rzadszych zgodnych błędów (31 wobec 57 w Q+Q) i mogą tłumaczyć, dlaczego Q+G nie wyprzedza tam Q+Q. Większa liczba rund debaty jest też źródłem wyższego kosztu pary mieszanej (sekcja~\ref{sec:koszt}).
 
 Abstain dotyczy zadań trudnych także dla pojedynczego modelu: odpowiedni model solo (Q dla Q+Q, G dla G+G, a dla Q+G lepszy z dwóch w danym zbiorze) rozwiązał poprawnie tylko 5 z 35 takich zadań w matematyce (14\%) i 5 z 18 w medycynie (28\%). Przyczyna jest jednak inna w obu zbiorach. W matematyce niemal każdy abstain towarzyszy uciętej generacji (sekcja~\ref{sec:niepowodzenia}), więc odzwierciedla głównie zadania wymagające długiego rozumowania, które nie mieszczą się w oknie 4096 tokenów, a nie świadome wstrzymanie się modeli. W medycynie ucięcie wystąpiło tylko w 1 z 18 przypadków, więc abstain oznacza tam rzeczywisty brak zgody między modelami i tylko tam można go traktować jako sygnał niepewności.
 
 \subsection{Koszt}
 \label{sec:koszt}
 
-Koszt obliczeniowy rośnie wraz z liczbą modeli i rund. Koszt mierzono liczbą tokenów (prompt i generowana odpowiedź łącznie) oraz czasem rozwiązania zadania, uśrednionymi po wszystkich 250 zadaniach zbioru (tabela~\ref{tab:wyniki_zbiorcze}). W obu zbiorach debata zużywa od 2,4 do 4,7 razy więcej tokenów i od 1,9 do 4,5 razy więcej czasu niż odpowiadający jej model solo (dla debaty mieszanej przyjęto lepszy z dwóch modeli z tabeli~\ref{tab:wyniki_zbiorcze}). Konfiguracja mieszana zużywa najwięcej tokenów w obu zbiorach: 4,7 razy więcej niż G w matematyce i 4,2 razy więcej niż Q w medycynie, przy czasie dłuższym odpowiednio 3,7 i 4,5 razy. W matematyce najdłużej trwa jednak G+G (średnio 125,2~s na zadanie wobec 103,7~s dla Q+G). Zależność dokładności od kosztu przedstawiają wykresy~\ref{wyk:dokladnosc_koszt} (tokeny) i~\ref{wyk:dokladnosc_czas} (czas).
+Koszt obliczeniowy rośnie wraz z liczbą modeli i rund. Koszt mierzono liczbą tokenów (prompt i generowana odpowiedź łącznie) oraz czasem rozwiązania zadania, uśrednionymi po wszystkich 250 zadaniach zbioru (tabela~\ref{tab:koszt_zbiorczy}).
+
+\input{tabels/koszt-zbiorczy}
+
+W obu zbiorach debata zużywa od 2,4 do 4,7 razy więcej tokenów i od 1,9 do 4,5 razy więcej czasu niż odpowiadający jej model solo (dla debaty mieszanej przyjęto lepszy z dwóch modeli z tabeli~\ref{tab:wyniki_zbiorcze}). Konfiguracja mieszana zużywa najwięcej tokenów w obu zbiorach: 4,7 razy więcej niż G w matematyce i 4,2 razy więcej niż Q w medycynie, przy czasie dłuższym odpowiednio 3,7 i 4,5 razy. W matematyce najdłużej trwa jednak G+G (średnio 125,2~s na zadanie wobec 103,7~s dla Q+G). Zależność dokładności od kosztu przedstawiają wykresy~\ref{wyk:dokladnosc_koszt} (tokeny) i~\ref{wyk:dokladnosc_czas} (czas).
 
 \begin{wykres}[H]
     \centering
@@ -137,7 +141,7 @@ W matematyce kolejne rundy nie są tańsze od pierwszej. W Q+G jedna runda koszt
 
 W obu zbiorach dokładniejszy jest model zużywający więcej tokenów: w matematyce G (955 tokenów na zadanie wobec 760 dla Q), w medycynie Q (508 wobec 440). W debacie mieszanej wzorzec się powtarza (matematyka: G 2400~tokenów wobec 2100 dla Q; medycyna: Q 1200 wobec 1000). Znaczną część kosztu stanowią wywołania ucięte po wyczerpaniu okna kontekstu (sekcja~\ref{sec:niepowodzenia}): w trybie solo 22 ucięte generacje G w matematyce zużywają 38\% tokenów, jakie G zużył na wszystkie 250 zadań tego zbioru, a w debatach w matematyce takie wywołania stanowią 24\% wszystkich tokenów w Q+Q, 37\% w Q+G i 57\% w G+G. W debatach w medycynie stanowią nie więcej niż 5,2\%.
 
-\subsection{Niepowodzenia generacji i tryb rozumowania}
+\subsection{Niepowodzenia generacji}
 \label{sec:niepowodzenia}
 
 Wynik null w trybie solo oznacza generację uciętą po wyczerpaniu okna kontekstu o długości 4096 tokenów, które obejmuje zarówno prompt, jak i generowany tekst. Takich wyników jest 36 na 1000 zadań rozwiązanych w trybie solo. Dotyczą głównie matematyki: rezultat null ma 3,6\% zadań Q i 8,8\% zadań G wobec 0,8\% i 1,2\% w medycynie, co zgadza się z tym, że zadania matematyczne wymagają dłuższych odpowiedzi: na jedno zadanie przypada tam średnio 760 (Q) i 955 (G) tokenów łącznie z promptem, wobec 508 i 440 w medycynie.
@@ -146,7 +150,10 @@ Debata nie zwraca wyniku null, ponieważ ucięta generacja oznacza w niej brak o
 
 Ucięcia towarzyszą prawie każdemu abstain w matematyce. W 34 z 35 zadań zakończonych abstain co najmniej jedno wywołanie zostało ucięte. W 17 z tych 35 zadań wynik null zwrócił także odpowiedni model solo. W medycynie ucięcie wystąpiło tylko w 1 z 18 zadań zakończonych abstain. Abstain w tej dziedzinie wynika więc z braku zgody między modelami, a nie z braku odpowiedzi.
 
-Sprawdzono też, czy włączenie trybu reasoning, w którym model przed odpowiedzią generuje osobną fazę rozumowania, poprawia wyniki. Tabela~\ref{tab:pilotaz_rozumowanie} zestawia wyniki dla niewielkiego podzbioru zadań z badania głównego: 10 pierwszych zadań w matematyce w każdej konfiguracji oraz 49 zadań z końca zbioru w medycynie (od 201. do 249., te same dla obu modeli).
+\subsection{Tryb rozumowania}
+\label{sec:rozumowanie}
+
+Sprawdzono, czy włączenie trybu reasoning, w którym model przed odpowiedzią generuje osobną fazę rozumowania, poprawia wyniki. Tabela~\ref{tab:pilotaz_rozumowanie} zestawia wyniki dla niewielkiego podzbioru zadań z badania głównego: 10 pierwszych zadań w matematyce w każdej konfiguracji oraz 49 zadań z końca zbioru w medycynie (od 201. do 249., te same dla obu modeli).
 
 \input{tabels/pilotaz-rozumowanie}
 
