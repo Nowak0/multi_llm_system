@@ -1,47 +1,24 @@
-\usepackage{fontspec}
-\usepackage[polish]{babel}
-
-\usepackage[
-    a4paper,
-    left=3cm,
-    right=2cm,
-    top=2.5cm,
-    bottom=2.5cm
-]{geometry}
+%% ============================================================
+%% Dodatkowe pakiety (ponad to, co ładuje klasa _formatting.cls).
+%% Czcionki, język, marginesy, biblatex, hyperref, float, amsmath,
+%% indentfirst, microtype i xcolor są ustawione w _formatting.cls —
+%% nie ładujemy ich tu ponownie, aby nie nadpisywać formatowania.
+%% ============================================================
 
 \usepackage{graphicx}
-\usepackage{array}
-\usepackage{float}
 \usepackage{needspace}
-\usepackage[table]{xcolor}
-\usepackage{amsmath}
-\usepackage{amssymb}
+\usepackage{colortbl} % \rowcolor w tabelach (xcolor ładuje klasa)
+%% amssymb pominięty — koliduje z unicode-math (klasa), który zawiera te symbole
 
-\usepackage[hidelinks]{hyperref}
-\usepackage{cleveref}
+%% cleveref musi być załadowany po hyperref (hyperref ładuje klasa)
+%% jawna opcja języka — bez niej cleveref wywraca się przy polyglossia
+\usepackage[english]{cleveref}
 
+%% własne środowisko pływające „wykres” (pakiet float ładuje klasa)
 \newfloat{wykres}{htbp}{low}[chapter]
 \floatname{wykres}{Wykres}
 
-\usepackage{microtype}
-
-\usepackage[
-    backend=biber,
-    style=ieee,
-    url=true,
-    doi=false,
-    isbn=false,
-    eprint=false,
-    maxnames=99,
-    giveninits=true
-]{biblatex}
-\DeclareDelimFormat{multinamedelim}{\addcomma\space}
-\DeclareDelimFormat{finalnamedelim}{\addcomma\space}
-\DeclareDelimFormat{andothersdelim}{\addcomma\space}
+%% źródło bibliografii (sam biblatex konfiguruje klasa)
 \addbibresource{bibliography/references.bib}
 
 \usepackage{glossaries}
-
-\setmainfont{Times New Roman}
-\usepackage{indentfirst}
-\setlength{\parindent}{1.25cm}
