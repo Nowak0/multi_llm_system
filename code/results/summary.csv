@@ -14,5 +14,5 @@ thinking_math,solo,gemma4:12b,10,4,0,0,6,40.0,0.0,0.0,60.0,100.0,130.7
 thinking_math,debate,qwen3.5:9b + qwen3.5:9b,10,8,0,2,0,80.0,0.0,20.0,0.0,100.0,384.5
 thinking_math,debate,qwen3.5:9b + gemma4:12b,10,5,0,5,0,50.0,0.0,50.0,0.0,100.0,649.9
 thinking_math,debate,gemma4:12b + gemma4:12b,10,4,0,6,0,40.0,0.0,60.0,0.0,100.0,901.6
-thinking_medical,solo,qwen3.5:9b,50,26,10,0,14,52.0,20.0,0.0,28.0,72.2,66.6
+thinking_medical,solo,qwen3.5:9b,49,26,10,0,13,53.1,20.4,0.0,26.5,72.2,65.7
 thinking_medical,solo,gemma4:12b,49,3,1,0,45,6.1,2.0,0.0,91.8,75.0,150.5
