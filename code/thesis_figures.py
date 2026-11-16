@@ -593,6 +593,91 @@ def build_balance_table(rows):
     return render_table("tab:bilans_debaty", caption, spec, header, body, note)
 
 
+def is_truncated(call):
+    return call.get("done_reason") == "length"
+
+
+def truncated_pct(calls):
+    return round(100 * sum(is_truncated(call) for call in calls) / len(calls), 1)
+
+
+def truncation_rows(data):
+    rows = []
+    for domain in DOMAINS:
+        for config in CONFIGS:
+            records = data[(domain, config.label)]
+            calls = [call for record in records for call in llm_calls(record)]
+            truncated = [call for call in calls if is_truncated(call)]
+            row = dict.fromkeys((
+                "dataset", "config", "calls", "truncated_calls", "truncated_calls_pct",
+                "independent_calls", "independent_truncated_pct",
+                "debate_calls", "debate_truncated_pct", "truncated_tokens_pct",
+            ), "")
+            row.update(
+                dataset=domain, config=config.label, calls=len(calls), truncated_calls=len(truncated),
+                truncated_calls_pct=truncated_pct(calls),
+                truncated_tokens_pct=round(
+                    100 * sum(token_count(call) for call in truncated) / sum(token_count(call) for call in calls), 1
+                ),
+            )
+            if config.condition == "debate":
+                independent = [call for record in records for call in round_calls(record, 0)]
+                debate = [call for record in records for call in debate_phase_calls(record)]
+                assert len(independent) + len(debate) == len(calls)
+                row.update(
+                    independent_calls=len(independent), independent_truncated_pct=truncated_pct(independent),
+                    debate_calls=len(debate), debate_truncated_pct=truncated_pct(debate),
+                )
+            rows.append(row)
+    return rows
+
+
+def build_truncation_table(rows):
+    header = header_row(
+        [
+            r"\multicolumn{2}{|c|}{}",
+            r"\multicolumn{3}{c|}{\textbf{Ucięte wywołania [\%]}}",
+            r"\textbf{Tokeny z uciętych}",
+        ],
+        r"\cline{3-5}",
+    ) + header_row([
+        r"\textbf{Zbiór}",
+        r"\textbf{Konfiguracja}",
+        r"\textbf{razem}",
+        r"\textbf{runda niezależna}",
+        r"\textbf{rundy debaty}",
+        r"\textbf{wywołań [\%]}",
+    ])
+    body = []
+    for domain in DOMAINS:
+        domain_rows = [row for row in rows if row["dataset"] == domain]
+        for index, row in enumerate(domain_rows):
+            solo = row["independent_calls"] == ""
+            cells = [
+                DOMAIN_TITLES[domain] if index == 0 else "",
+                row["config"],
+                decimal(row["truncated_calls_pct"]),
+                DASH if solo else decimal(row["independent_truncated_pct"]),
+                DASH if solo else decimal(row["debate_truncated_pct"]),
+                decimal(row["truncated_tokens_pct"]),
+            ]
+            is_last = index == len(domain_rows) - 1
+            body.append(table_row(cells, r"\hline" if is_last else r"\cline{2-6}"))
+    spec = column_spec(
+        [center_column("2.0cm"), center_column("2.2cm")]
+        + [center_column(width) for width in ("1.6cm", "2.1cm", "1.9cm", "2.2cm")]
+    )
+    caption = "Ucięte generacje w poszczególnych konfiguracjach"
+    note = (
+        r"„Ucięte wywołania [\%]” -- odsetek wywołań modelu, w których generacja została przerwana po wyczerpaniu "
+        r"okna kontekstu; „razem” -- wszystkie wywołania (w trybie solo jedno na zadanie), „runda niezależna” "
+        r"i „rundy debaty” -- wywołania w odpowiednim etapie debaty. „Tokeny z uciętych wywołań [\%]” -- część "
+        r"wszystkich tokenów (prompt i wygenerowana odpowiedź), którą zużyły ucięte wywołania. "
+        r"Oznaczenia konfiguracji jak w tabeli~\ref{tab:wyniki_zbiorcze}."
+    )
+    return render_table("tab:uciete_generacje", caption, spec, header, body, note)
+
+
 COST_COLUMNS = (
     "dataset", "config", "part", "item", "tasks", "tokens_per_task", "time_s_per_task",
     "tokens_share_pct", "time_share_pct", "base_config", "tokens_vs_base", "time_vs_base",
@@ -1036,6 +1121,10 @@ def main():
     balance = debate_balance_rows(main_data)
     write_csv(RESULTS_DIR / "debate_balance.csv", balance)
     write_text(TABLES_DIR / "bilans-debaty.tex", build_balance_table(balance))
+
+    truncation = truncation_rows(main_data)
+    write_csv(RESULTS_DIR / "truncation.csv", truncation)
+    write_text(TABLES_DIR / "uciete-generacje.tex", build_truncation_table(truncation))
 
     cost = cost_breakdown_rows(main_data, stats)
     write_csv(RESULTS_DIR / "cost_breakdown.csv", cost)
