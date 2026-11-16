@@ -1,21 +1,31 @@
-\documentclass[12pt,a4paper]{report}
+\documentclass{_formatting}
 
 \input{config/packages}
 \input{config/commands}
 \input{config/metadata}
 \input{config/glossaery}
 
+%% ustawienia formatowania dla dodatków (musi być przed \appendix)
+\input{appendices/_formatting}
+
 \begin{document}
 
-\maketitle
+%% strony wstępne (kolejno: strona tytułowa, oświadczenie, streszczenie, wykaz symboli)
+\includepdf[pages=-]{frontmatter/1_title.pdf}
+\includepdf[pages=-]{frontmatter/2_statement.pdf}
+\input{frontmatter/3_abstract_PL}
+\input{frontmatter/4_abstract_ENG}
+\input{frontmatter/5_symbols}
 
-\input{frontmatter/streszczenie.tex}
-\input{frontmatter/abstract.tex}
-
+%% -------------------- Spis treści ---------------------------
+\renewcommand{\contentsname}{Spis treści}
+\clearpage
+\phantomsection
+\addcontentsline{toc}{chapter}{Spis treści}
+\label{page:Table_of_contents}
 \tableofcontents
 
-\input{frontmatter/wykaz-skrotow.tex}
-
+%% -------------------- Rozdziały główne ----------------------
 \include{chapters/1-wstep-i-cel-pracy}
 \include{chapters/2-wprowadzenie-do-dziedziny}
 \include{chapters/3-technologie-i-narzedzia}
@@ -23,9 +33,33 @@
 \include{chapters/5-badania-i-analiza-wynikow}
 \include{chapters/6-podsumowanie}
 
-\input{backmatter/wykaz-tabel.tex}
-\input{backmatter/wykaz-rysunkow.tex}
-
+%% -------------------- Bibliografia --------------------------
+\clearpage
+\phantomsection
+\addcontentsline{toc}{chapter}{Wykaz literatury} % wpis do spisu treści
+\label{page:Bibliography}
 \printbibliography
+
+%% -------------------- Wykaz rysunków ------------------------
+\renewcommand{\listfigurename}{Wykaz rysunków}
+\clearpage
+\phantomsection
+\addcontentsline{toc}{chapter}{Wykaz rysunków} % wpis do spisu treści
+\listoffigures
+
+%% -------------------- Wykaz tabel ---------------------------
+\renewcommand{\listtablename}{Wykaz tabel}
+\clearpage
+\phantomsection
+\addcontentsline{toc}{chapter}{Wykaz tabel} % wpis do spisu treści
+\listoftables
+
+%% -------------------- Dodatki -------------------------------
+%% przełączenie na tryb dodatków; każdy \include tworzy kolejny dodatek
+\appendix
+%% UWAGA: appendices/A_appendix.tex jest obecnie kopią appendices/_formatting.tex
+%% (brak \chapter{...} z treścią) — jego dołączenie powoduje błąd ponownej
+%% definicji \appchapter. Odkomentuj po wpisaniu treści dodatku.
+% \include{appendices/A_appendix}
 
 \end{document}
