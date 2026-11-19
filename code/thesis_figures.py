@@ -63,6 +63,22 @@ REVISION_PATTERN = re.compile(
 REPEAT_FRAGMENT_CHARS = 250
 REPEAT_SCAN_STEP = 50
 MIN_REPEATED_LINE_CHARS = 40
+CONTEXT_WINDOW_TOKENS = 4096
+LONG_PROMPT_TOKENS = CONTEXT_WINDOW_TOKENS // 2
+LONG_GENERATION_TOKENS = 1000
+REPEATED_SENTENCE_MIN_CHARS = 30
+REPEATED_SENTENCE_LIMIT = 3
+MARKER_DENSITY_QUANTILE = 0.9
+LOOP_MARKER_PATTERN = re.compile(
+    r"\b(?:Wait|Actually|Hmm+|Alternatively|Oops|On second thought"
+    r"|Let me (?:re-?check|re-?calculate|double-?check|re-?evaluate|re-?read|re-?think|verify|try again)"
+    r"|double-?check|re-?check)\b"
+    r"|(?:^|[.?!\"}\n]\s*)(?:But|No|However|Or)\b[,.]?",
+    re.IGNORECASE,
+)
+SENTENCE_SPLIT = re.compile(r"(?<=[.?!])\s+")
+DIGIT_RUN = re.compile(r"\d+")
+CAUSE_PRIORITY = ("loop", "long_prompt", "other")
 
 PAIR_ROWS = (
     ("Q+Q", "Q"),
@@ -263,12 +279,13 @@ def header_row(cells, rule=r"\hline"):
     return [r"\rowcolor{gray!20}", table_row(cells, rule)]
 
 
-def render_table(label, caption, spec, header, body, note=None, fit_width=False):
+def render_table(label, title, spec, header, body, description=None, fit_width=False):
+    caption = f"\\caption[{title}]{{{title}. {description}}}" if description else f"\\caption{{{title}}}"
     lines = [
         "% !TEX root = ../main.tex",
         r"\begin{table}[H]",
         r"    \centering",
-        f"    \\caption{{{caption}}}",
+        "    " + caption,
         f"    \\label{{{label}}}",
         r"    \small",
         r"    \setlength{\tabcolsep}{2.5pt}",
@@ -281,16 +298,7 @@ def render_table(label, caption, spec, header, body, note=None, fit_width=False)
     lines += [r"    \end{tabular}}"]
     if fit_width:
         lines += [r"    \ifdim\wd0>\textwidth\sbox0{\resizebox{\textwidth}{!}{\usebox0}}\fi"]
-    lines += [r"    \usebox{0}"]
-    if note:
-        lines += [
-            r"    \par\smallskip",
-            r"    \begin{minipage}{\wd0}",
-            r"        \raggedright\footnotesize",
-            "        " + note,
-            r"    \end{minipage}",
-        ]
-    lines.append(r"\end{table}")
+    lines += [r"    \usebox{0}", r"\end{table}"]
     return "\n".join(lines) + "\n"
 
 
@@ -345,20 +353,22 @@ def build_outcome_table(stats):
         [center_column("2.0cm"), center_column("2.2cm")]
         + [center_column(width) for width in ("1.7cm", "1.45cm", "1.55cm", "1.25cm")]
     )
-    caption = r"Odsetek zadań według kategorii wyniku ($n = 250$ zadań na zbiór)"
-    note = (
-        r"Q -- \texttt{qwen3.5:9b}, G -- \texttt{gemma4:12b}; Q+Q, Q+G i G+G -- debata odpowiednich par modeli. "
-        "Pogrubiono najwyższy odsetek poprawnych odpowiedzi w zbiorze."
+    title = "Odsetek zadań według kategorii wyniku"
+    description = (
+        r"$n = 250$ zadań na zbiór; Q -- \texttt{qwen3.5:9b}, G -- \texttt{gemma4:12b}, "
+        "Q+Q, Q+G i G+G -- debaty odpowiednich par modeli. Pogrubiono najwyższy odsetek poprawnych."
     )
-    return render_table("tab:wyniki_zbiorcze", caption, spec, header, body, note)
+    return render_table("tab:wyniki_zbiorcze", title, spec, header, body, description)
 
 
-def build_cost_table(stats):
+def build_cost_table(stats, truncation_tasks):
+    truncated = {(row["dataset"], row["config"]): row for row in truncation_tasks}
     header = header_row([
         r"\textbf{Zbiór}",
         r"\textbf{Konfiguracja}",
         r"\textbf{Średni czas [s]}",
         r"\textbf{Tokeny na zadanie}",
+        r"\textbf{Tokeny w zadaniach z ucięciem [\%]}",
     ])
     body = []
     for domain in DOMAINS:
@@ -369,18 +379,21 @@ def build_cost_table(stats):
                 config.label,
                 decimal(s["mean_time"]),
                 thousands(s["tokens_per_task"]),
+                decimal(truncated[(domain, config.label)]["truncated_tasks_tokens_pct"]),
             ]
             is_last = index == len(CONFIGS) - 1
-            body.append(table_row(cells, r"\hline" if is_last else r"\cline{2-4}"))
+            body.append(table_row(cells, r"\hline" if is_last else r"\cline{2-5}"))
     spec = column_spec(
-        [center_column("2.0cm"), center_column("2.2cm"), center_column("2.4cm"), center_column("2.4cm")]
+        [center_column("2.0cm"), center_column("2.2cm"), center_column("2.4cm"), center_column("2.4cm"), center_column("3.2cm")]
     )
-    caption = r"Średni czas rozwiązania i liczba tokenów na zadanie ($n = 250$ zadań na zbiór)"
-    note = (
-        r"Oznaczenia konfiguracji jak w tabeli~\ref{tab:wyniki_zbiorcze}. "
-        "Tokeny (wejściowe i wygenerowane) zliczono we wszystkich wywołaniach modeli."
+    title = "Średni czas rozwiązania i liczba tokenów na zadanie"
+    description = (
+        r"$n = 250$ zadań na zbiór; oznaczenia konfiguracji jak w tabeli~\ref{tab:wyniki_zbiorcze}. "
+        "Tokeny (wejściowe i wygenerowane) zliczono we wszystkich wywołaniach. "
+        r"Ostatnia kolumna to udział tokenów zużytych w zadaniach, w których wystąpiło ucięcie generacji "
+        r"(sekcja~\ref{sec:niepowodzenia})."
     )
-    return render_table("tab:koszt_zbiorczy", caption, spec, header, body, note)
+    return render_table("tab:koszt_zbiorczy", title, spec, header, body, description)
 
 
 def main_table_rows(stats):
@@ -471,17 +484,17 @@ def build_paired_table(results, stats):
         body.append(table_row(cells, r"\hline"))
     block = [center_column(width) for width in ("1.3cm", "1.35cm", "1.35cm", "1.4cm")]
     spec = column_spec([center_column("3.2cm")] + block * 2)
-    caption = "Porównania parami konfiguracji na tych samych zadaniach"
+    title = "Porównania parami konfiguracji na tych samych zadaniach"
     best = ", ".join(
         f"{best_solo_label(stats, domain)} {DOMAIN_LOCATIVE[domain]}" for domain in DOMAINS
     )
-    note = (
-        r"A i B -- pierwsza i druga konfiguracja w kolumnie „Porównanie”; „$\Delta$ [pp]” -- różnica odsetka "
-        r"poprawnych odpowiedzi A $-$ B w punktach procentowych (pp); „tylko A” i „tylko B” -- liczba zadań "
-        r"rozwiązanych poprawnie wyłącznie przez daną konfigurację; „p” -- wartość p dokładnego testu McNemara, "
-        rf"pogrubiona dla $p < 0{{,}}05$. Lepszy solo: {best}."
+    description = (
+        r"A i B -- pierwsza i druga konfiguracja w kolumnie „Porównanie”; $\Delta$ -- różnica dokładności A $-$ B "
+        "w punktach procentowych (pp); „tylko A” i „tylko B” -- zadania rozwiązane poprawnie wyłącznie przez daną "
+        r"konfigurację; $p$ -- dokładny test McNemara, pogrubiono $p < 0{,}05$. "
+        f"Lepszy solo: {best}."
     )
-    return render_table("tab:testy_parowane", caption, spec, header, body, note)
+    return render_table("tab:testy_parowane", title, spec, header, body, description, fit_width=True)
 
 
 def answer_is_correct(answer, gold, domain):
@@ -581,16 +594,14 @@ def build_balance_table(rows):
     spec = column_spec(
         [center_column("2.0cm"), center_column("1.4cm")] + [center_column(width) for width in widths]
     )
-    caption = r"Bilans debaty względem rundy niezależnej (liczba zadań, dla każdej debaty $n = 250$)"
-    note = (
-        "„Zgoda od razu” -- oba modele podały równoważne odpowiedzi w rundzie niezależnej, więc debata się nie odbyła; "
-        "„w tym poprawna” -- ta odpowiedź jest poprawna. Pozostałe zadania trafiły do debaty: w grupie "
-        "„Żaden model poprawny” nikt nie podał w rundzie niezależnej poprawnej odpowiedzi, a w grupie "
-        "„Jeden model poprawny” podał ją jeden z modeli. W pierwszej z tych grup „w tym uratowane” oznacza zadania "
-        "z poprawnym wynikiem końcowym, a w drugiej „w tym utracone” -- z niepoprawnym wynikiem końcowym "
-        "(także abstain)."
+    title = "Bilans debaty względem rundy niezależnej"
+    description = (
+        "Liczba zadań, dla każdej debaty $n = 250$. „Zgoda od razu” -- modele zgodziły się w rundzie niezależnej, "
+        "więc debata się nie odbyła. „Uratowane” -- zadania z poprawnym wynikiem końcowym, gdy w rundzie niezależnej "
+        "nikt nie miał poprawnej odpowiedzi; „utracone” -- zadania z niepoprawnym wynikiem końcowym (także abstain), "
+        "gdy poprawną odpowiedź miał jeden z modeli."
     )
-    return render_table("tab:bilans_debaty", caption, spec, header, body, note)
+    return render_table("tab:bilans_debaty", title, spec, header, body, description)
 
 
 def is_truncated(call):
@@ -633,49 +644,260 @@ def truncation_rows(data):
 
 
 def build_truncation_table(rows):
+    sub = lambda label: r"\textbf{%s}" % label
     header = header_row(
         [
             r"\multicolumn{2}{|c|}{}",
-            r"\multicolumn{3}{c|}{\textbf{Ucięte wywołania [\%]}}",
-            r"\textbf{Tokeny z uciętych}",
+            r"\multicolumn{2}{c|}{\textbf{Zadania z ucięciem}}",
+            r"\multicolumn{3}{c|}{\textbf{w tym z powodu}}",
         ],
-        r"\cline{3-5}",
+        r"\cline{3-7}",
     ) + header_row([
-        r"\textbf{Zbiór}",
-        r"\textbf{Konfiguracja}",
-        r"\textbf{razem}",
-        r"\textbf{runda niezależna}",
-        r"\textbf{rundy debaty}",
-        r"\textbf{wywołań [\%]}",
+        sub("Zbiór"), sub("Konfiguracja"), sub("liczba"), sub(r"[\%]"),
+        sub("zapętlenia"), sub("długiego promptu"), sub("długiego rozumowania"),
     ])
     body = []
     for domain in DOMAINS:
         domain_rows = [row for row in rows if row["dataset"] == domain]
         for index, row in enumerate(domain_rows):
-            solo = row["independent_calls"] == ""
+            assert row["truncated_tasks"] == row["loop_tasks"] + row["long_prompt_tasks"] + row["other_tasks"]
             cells = [
                 DOMAIN_TITLES[domain] if index == 0 else "",
                 row["config"],
-                decimal(row["truncated_calls_pct"]),
-                DASH if solo else decimal(row["independent_truncated_pct"]),
-                DASH if solo else decimal(row["debate_truncated_pct"]),
-                decimal(row["truncated_tokens_pct"]),
+                str(row["truncated_tasks"]),
+                decimal(row["truncated_tasks_pct"]),
+                str(row["loop_tasks"]),
+                str(row["long_prompt_tasks"]),
+                str(row["other_tasks"]),
             ]
             is_last = index == len(domain_rows) - 1
-            body.append(table_row(cells, r"\hline" if is_last else r"\cline{2-6}"))
+            body.append(table_row(cells, r"\hline" if is_last else r"\cline{2-7}"))
     spec = column_spec(
-        [center_column("2.0cm"), center_column("2.2cm")]
-        + [center_column(width) for width in ("1.6cm", "2.1cm", "1.9cm", "2.2cm")]
+        [center_column(width) for width in ("1.9cm", "2.1cm", "1.4cm", "1.3cm", "2.0cm", "2.3cm", "2.9cm")]
     )
-    caption = "Ucięte generacje w poszczególnych konfiguracjach"
-    note = (
-        r"„Ucięte wywołania [\%]” -- odsetek wywołań modelu, w których generacja została przerwana po wyczerpaniu "
-        r"okna kontekstu; „razem” -- wszystkie wywołania (w trybie solo jedno na zadanie), „runda niezależna” "
-        r"i „rundy debaty” -- wywołania w odpowiednim etapie debaty. „Tokeny z uciętych wywołań [\%]” -- część "
-        r"wszystkich tokenów (prompt i wygenerowana odpowiedź), którą zużyły ucięte wywołania. "
-        r"Oznaczenia konfiguracji jak w tabeli~\ref{tab:wyniki_zbiorcze}."
+    title = "Zadania z uciętą generacją według przyczyny"
+    description = (
+        "$n = 250$ zadań na konfigurację. Zadanie liczono, gdy co najmniej jedno jego wywołanie zostało ucięte po "
+        "wyczerpaniu okna kontekstu. Przyczyny są rozłączne i sprawdzane w kolejności kolumn: zapętlenie (powtórzenia "
+        "lub nadmiar słów-poprawek), długi prompt (co najmniej połowa okna) i długie rozumowanie bez powtórzeń."
     )
-    return render_table("tab:uciete_generacje", caption, spec, header, body, note)
+    return render_table("tab:uciete_generacje", title, spec, header, body, description)
+
+
+def verify_context_window(data):
+    truncated = [call for records in data.values() for record in records for call in llm_calls(record) if is_truncated(call)]
+    assert truncated and all(
+        (call.get("prompt_eval_count") or 0) + (call.get("eval_count") or 0) == CONTEXT_WINDOW_TOKENS
+        for call in truncated
+    )
+    return len(truncated)
+
+
+def repeated_sentence_count(text):
+    sentences = (part.strip() for part in SENTENCE_SPLIT.split(text))
+    counts = Counter(sentence for sentence in sentences if len(sentence) >= REPEATED_SENTENCE_MIN_CHARS)
+    return max(counts.values()) if counts else 0
+
+
+def marker_density(call, text_key="content"):
+    tokens = call.get("eval_count") or 0
+    if tokens < LONG_GENERATION_TOKENS:
+        return 0.0
+    return 1000 * len(LOOP_MARKER_PATTERN.findall(call.get(text_key) or "")) / tokens
+
+
+def marker_density_limit(data):
+    densities = sorted(
+        marker_density(call)
+        for records in data.values()
+        for record in records
+        for call in llm_calls(record)
+        if not is_truncated(call) and (call.get("eval_count") or 0) >= LONG_GENERATION_TOKENS
+    )
+    return densities[int(MARKER_DENSITY_QUANTILE * len(densities))]
+
+
+def truncation_cause(call, density_limit, text_key="content"):
+    text = call.get(text_key) or ""
+    if (
+        has_repeated_fragment(DIGIT_RUN.sub("#", text))
+        or repeated_sentence_count(text) >= REPEATED_SENTENCE_LIMIT
+        or marker_density(call, text_key) > density_limit
+    ):
+        return "loop"
+    if (call.get("prompt_eval_count") or 0) >= LONG_PROMPT_TOKENS:
+        return "long_prompt"
+    return "other"
+
+
+def task_truncation_cause(record, density_limit, text_key="content"):
+    causes = {truncation_cause(call, density_limit, text_key) for call in llm_calls(record) if is_truncated(call)}
+    return next((cause for cause in CAUSE_PRIORITY if cause in causes), None)
+
+
+def truncated_task_rows(data):
+    density_limit = marker_density_limit(data)
+    rows = []
+    for domain in DOMAINS:
+        for config in CONFIGS:
+            records = data[(domain, config.label)]
+            causes = Counter()
+            tokens = seconds = truncated_tokens = truncated_seconds = 0
+            for record in records:
+                cause = task_truncation_cause(record, density_limit)
+                task_tokens = sum(token_count(call) for call in llm_calls(record))
+                tokens += task_tokens
+                seconds += record["elapsed_seconds"]
+                if cause:
+                    causes[cause] += 1
+                    truncated_tokens += task_tokens
+                    truncated_seconds += record["elapsed_seconds"]
+            truncated = sum(causes.values())
+            rows.append({
+                "dataset": domain,
+                "config": config.label,
+                "tasks": len(records),
+                "truncated_tasks": truncated,
+                "truncated_tasks_pct": round(100 * truncated / len(records), 1),
+                "loop_tasks": causes["loop"],
+                "long_prompt_tasks": causes["long_prompt"],
+                "other_tasks": causes["other"],
+                "truncated_tasks_tokens_pct": round(100 * truncated_tokens / tokens, 1),
+                "truncated_tasks_time_pct": round(100 * truncated_seconds / seconds, 1),
+                "marker_density_limit_per_1k_tokens": round(density_limit, 1),
+            })
+    return rows
+
+
+TRUNCATION_MODES = (("main", "content"), ("reasoning", "thinking"))
+TRUNCATION_GROUPS = (
+    ("all", lambda label: True),
+    ("with_G", lambda label: "G" in label),
+    ("only_Q", lambda label: "G" not in label),
+)
+
+
+def mode_truncation_rows(main_data, pilot_data):
+    density_limit = marker_density_limit(main_data)
+    rows = []
+    for mode, text_key in TRUNCATION_MODES:
+        data = main_data if mode == "main" else pilot_data
+        for group, belongs in TRUNCATION_GROUPS:
+            records = [
+                record
+                for (_, label), config_records in data.items()
+                if belongs(label)
+                for record in config_records
+            ]
+            causes = Counter()
+            first_feature = no_answer = 0
+            for record in records:
+                truncated = [call for call in llm_calls(record) if is_truncated(call)]
+                if not truncated:
+                    continue
+                causes[task_truncation_cause(record, density_limit, text_key)] += 1
+                first_feature += any(
+                    has_repeated_fragment(DIGIT_RUN.sub("#", call.get(text_key) or "")) for call in truncated
+                )
+                no_answer += all(not (call.get("content") or "").strip() for call in truncated)
+            truncated_tasks = sum(causes.values())
+            rows.append({
+                "mode": mode,
+                "configs": group,
+                "tasks": len(records),
+                "truncated_tasks": truncated_tasks,
+                "loop_tasks": causes["loop"],
+                "loop_tasks_pct": round(100 * causes["loop"] / truncated_tasks, 1),
+                "long_prompt_tasks": causes["long_prompt"],
+                "other_tasks": causes["other"],
+                "repeated_fragment_tasks": first_feature,
+                "repeated_fragment_tasks_pct": round(100 * first_feature / truncated_tasks, 1),
+                "no_answer_tasks": no_answer,
+                "marker_density_limit_per_1k_tokens": round(density_limit, 1),
+            })
+    return rows
+
+
+def solo_reference_label(domain, label, stats):
+    if label == "Q+Q":
+        return "Q"
+    if label == "G+G":
+        return "G"
+    return max(("Q", "G"), key=lambda solo: stats[(domain, solo)]["correct"])
+
+
+def truncation_detail_rows(data, stats):
+    density_limit = marker_density_limit(data)
+    rows = []
+
+    def add(item, dataset, metric, value):
+        rows.append({"item": item, "dataset": dataset, "metric": metric, "value": value})
+
+    prompts = [
+        call["prompt_eval_count"]
+        for records in data.values()
+        for record in records
+        if task_truncation_cause(record, density_limit) == "long_prompt"
+        for call in llm_calls(record)
+        if is_truncated(call) and (call.get("prompt_eval_count") or 0) >= LONG_PROMPT_TOKENS
+    ]
+    add("long_prompt", "all", "calls", len(prompts))
+    add("long_prompt", "all", "mean_prompt_tokens", round(sum(prompts) / len(prompts)))
+    add("long_prompt", "all", "mean_room_tokens", round(sum(CONTEXT_WINDOW_TOKENS - prompt for prompt in prompts) / len(prompts)))
+
+    for domain in DOMAINS:
+        labels_by_task = {}
+        for config in CONFIGS:
+            for record in data[(domain, config.label)]:
+                if task_truncation_cause(record, density_limit) == "other":
+                    labels_by_task.setdefault(record["task_id"], set()).add(config.label)
+        runs = []
+        for config in CONFIGS:
+            for record in data[(domain, config.label)]:
+                if record["task_id"] in labels_by_task and config.label not in labels_by_task[record["task_id"]]:
+                    runs.append(record)
+        finished = [record for record in runs if not any(is_truncated(call) for call in llm_calls(record))]
+        add("long_reasoning", domain, "tasks", len(labels_by_task))
+        add("long_reasoning", domain, "runs_in_other_configs", len(runs))
+        add("long_reasoning", domain, "runs_without_truncation", len(finished))
+        add("long_reasoning", domain, "runs_without_truncation_correct", sum(outcome_of(record) == "correct" for record in finished))
+
+    for domain in DOMAINS:
+        records = data[(domain, "Q+G")]
+        by_round = {}
+        for record in records:
+            for round_record in record["trace"]:
+                for solution in round_record["solutions"]:
+                    call = solution.get("response")
+                    if call:
+                        by_round.setdefault(round_record["round"], []).append(call)
+        for round_index in sorted(by_round):
+            calls = by_round[round_index]
+            add(f"mixed_round_{round_index}", domain, "calls", len(calls))
+            add(f"mixed_round_{round_index}", domain, "mean_prompt_tokens", round(sum(call.get("prompt_eval_count") or 0 for call in calls) / len(calls)))
+            add(f"mixed_round_{round_index}", domain, "mean_generated_tokens", round(sum(call.get("eval_count") or 0 for call in calls) / len(calls)))
+        loading = sum((call.get("load_duration") or 0) for record in records for call in llm_calls(record)) / 1e9
+        add("mixed_model_loading", domain, "mean_seconds_per_task", round(loading / len(records), 1))
+
+    for domain in DOMAINS:
+        abstained = truncated = solo_null = solo_correct = 0
+        for config in CONFIGS:
+            if config.condition == "solo":
+                continue
+            solo = {record["task_id"]: record for record in data[(domain, solo_reference_label(domain, config.label, stats))]}
+            for record in data[(domain, config.label)]:
+                if outcome_of(record) != "abstain":
+                    continue
+                abstained += 1
+                truncated += any(is_truncated(call) for call in llm_calls(record))
+                solo_outcome = outcome_of(solo[record["task_id"]])
+                solo_null += solo_outcome == "null"
+                solo_correct += solo_outcome == "correct"
+        add("abstain", domain, "tasks", abstained)
+        add("abstain", domain, "tasks_with_truncated_call", truncated)
+        add("abstain", domain, "tasks_solo_reference_null", solo_null)
+        add("abstain", domain, "tasks_solo_reference_correct", solo_correct)
+    return rows
 
 
 COST_COLUMNS = (
@@ -871,15 +1093,13 @@ def build_pilot_table(rows):
         [center_column("2.0cm"), center_column("2.25cm"), center_column("1.2cm")]
         + [center_column("1.7cm"), center_column("1.4cm"), center_column("1.9cm"), center_column("2.35cm"), center_column("2.7cm")]
     )
-    caption = "Tryb bez rozumowania i z rozumowaniem na tych samych zadaniach"
-    note = (
-        "W kolumnach „Poprawne”, „Błędne”, „Brak odpowiedzi”, „Średni czas na zadanie [s]” i „Tokeny na zadanie” "
-        "każda komórka ma postać $x \\rightarrow y$, gdzie $x$ to wynik bez rozumowania, a $y$ to wynik z rozumowaniem. "
-        "„Brak odpowiedzi” oznacza w trybie jednomodelowym odpowiedź uciętą po wyczerpaniu okna kontekstu (null), "
-        "a w debacie brak konsensusu (abstain). Liczby w kolumnach „Poprawne”, „Błędne” i „Brak odpowiedzi” "
-        "to liczby zadań. „Tokeny na zadanie” to średnia liczba tokenów (prompt i wygenerowana odpowiedź)."
+    title = "Tryb bez rozumowania i z rozumowaniem na tych samych zadaniach"
+    description = (
+        "„Brak odpowiedzi” to null w trybie solo (generacja ucięta po wyczerpaniu okna kontekstu) i abstain w debacie "
+        "(brak konsensusu). Poprawne, błędne i brak odpowiedzi podano w liczbach zadań, a tokeny obejmują prompt "
+        "i wygenerowaną odpowiedź."
     )
-    return render_table("tab:pilotaz_rozumowanie", caption, spec, header, body, note, fit_width=True)
+    return render_table("tab:pilotaz_rozumowanie", title, spec, header, body, description, fit_width=True)
 
 
 def has_repeated_fragment(text):
@@ -1109,10 +1329,12 @@ def main():
     print(f"Zgodność z summary.csv: {checked} konfiguracji OK")
 
     stats = {key: summarize(records) for key, records in main_data.items()}
+    print(f"Ucięte wywołania z oknem {CONTEXT_WINDOW_TOKENS} tokenów: {verify_context_window(main_data)}")
+    truncation_tasks = truncated_task_rows(main_data)
 
     write_csv(RESULTS_DIR / "main_table.csv", main_table_rows(stats))
     write_text(TABLES_DIR / "wyniki-zbiorcze.tex", build_outcome_table(stats))
-    write_text(TABLES_DIR / "koszt-zbiorczy.tex", build_cost_table(stats))
+    write_text(TABLES_DIR / "koszt-zbiorczy.tex", build_cost_table(stats, truncation_tasks))
 
     paired = paired_results(main_data, stats)
     write_csv(RESULTS_DIR / "paired_tests.csv", paired)
@@ -1124,7 +1346,9 @@ def main():
 
     truncation = truncation_rows(main_data)
     write_csv(RESULTS_DIR / "truncation.csv", truncation)
-    write_text(TABLES_DIR / "uciete-generacje.tex", build_truncation_table(truncation))
+    write_csv(RESULTS_DIR / "truncation_tasks.csv", truncation_tasks)
+    write_csv(RESULTS_DIR / "truncation_details.csv", truncation_detail_rows(main_data, stats))
+    write_text(TABLES_DIR / "uciete-generacje.tex", build_truncation_table(truncation_tasks))
 
     cost = cost_breakdown_rows(main_data, stats)
     write_csv(RESULTS_DIR / "cost_breakdown.csv", cost)
@@ -1132,6 +1356,7 @@ def main():
     pilot = pilot_rows(main_data, pilot_data)
     write_csv(RESULTS_DIR / "pilot_thinking.csv", pilot)
     write_csv(RESULTS_DIR / "thinking_truncation.csv", thinking_truncation_rows(pilot_data))
+    write_csv(RESULTS_DIR / "truncation_modes.csv", mode_truncation_rows(main_data, pilot_data))
     write_text(TABLES_DIR / "pilotaz-rozumowanie.tex", build_pilot_table(pilot))
 
     plot_outcome_composition(stats, FIGURES_DIR / "rys-sklad-wynikow.png")
@@ -1140,7 +1365,7 @@ def main():
         stats, FIGURES_DIR / "rys-dokladnosc-czas.png", metric="mean_time", axes_limits=TIME_AXES,
         xlabel="Średni czas na zadanie [s]", overrides=TIME_LABEL_PLACEMENT_OVERRIDES,
     )
-    print("Zapisano 4 tabele (text/tabels), 3 rysunki (text/figures) i 6 plików csv (code/results)")
+    print("Zapisano 6 tabel (text/tabels), 3 rysunki (text/figures) i 10 plików csv (code/results)")
 
 
 if __name__ == "__main__":

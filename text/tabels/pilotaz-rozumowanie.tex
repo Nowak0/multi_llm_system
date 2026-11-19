@@ -1,7 +1,7 @@
 % !TEX root = ../main.tex
 \begin{table}[H]
     \centering
-    \caption{Tryb bez rozumowania i z rozumowaniem na tych samych zadaniach}
+    \caption[Tryb bez rozumowania i z rozumowaniem na tych samych zadaniach]{Tryb bez rozumowania i z rozumowaniem na tych samych zadaniach. „Brak odpowiedzi” to null w trybie solo (generacja ucięta po wyczerpaniu okna kontekstu) i abstain w debacie (brak konsensusu). Poprawne, błędne i brak odpowiedzi podano w liczbach zadań, a tokeny obejmują prompt i wygenerowaną odpowiedź.}
     \label{tab:pilotaz_rozumowanie}
     \small
     \setlength{\tabcolsep}{2.5pt}
@@ -23,9 +23,4 @@
     \end{tabular}}
     \ifdim\wd0>\textwidth\sbox0{\resizebox{\textwidth}{!}{\usebox0}}\fi
     \usebox{0}
-    \par\smallskip
-    \begin{minipage}{\wd0}
-        \raggedright\footnotesize
-        W kolumnach „Poprawne”, „Błędne”, „Brak odpowiedzi”, „Średni czas na zadanie [s]” i „Tokeny na zadanie” każda komórka ma postać $x \rightarrow y$, gdzie $x$ to wynik bez rozumowania, a $y$ to wynik z rozumowaniem. „Brak odpowiedzi” oznacza w trybie jednomodelowym odpowiedź uciętą po wyczerpaniu okna kontekstu (null), a w debacie brak konsensusu (abstain). Liczby w kolumnach „Poprawne”, „Błędne” i „Brak odpowiedzi” to liczby zadań. „Tokeny na zadanie” to średnia liczba tokenów (prompt i wygenerowana odpowiedź).
-    \end{minipage}
 \end{table}

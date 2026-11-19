@@ -1,7 +1,7 @@
 % !TEX root = ../main.tex
 \begin{table}[H]
     \centering
-    \caption{Odsetek zadań według kategorii wyniku ($n = 250$ zadań na zbiór)}
+    \caption[Odsetek zadań według kategorii wyniku]{Odsetek zadań według kategorii wyniku. $n = 250$ zadań na zbiór; Q -- \texttt{qwen3.5:9b}, G -- \texttt{gemma4:12b}, Q+Q, Q+G i G+G -- debaty odpowiednich par modeli. Pogrubiono najwyższy odsetek poprawnych.}
     \label{tab:wyniki_zbiorcze}
     \small
     \setlength{\tabcolsep}{2.5pt}
@@ -25,9 +25,4 @@
          & G+G & 62,4 & 37,6 & 0,0 & -- \\ \hline
     \end{tabular}}
     \usebox{0}
-    \par\smallskip
-    \begin{minipage}{\wd0}
-        \raggedright\footnotesize
-        Q -- \texttt{qwen3.5:9b}, G -- \texttt{gemma4:12b}; Q+Q, Q+G i G+G -- debata odpowiednich par modeli. Pogrubiono najwyższy odsetek poprawnych odpowiedzi w zbiorze.
-    \end{minipage}
 \end{table}

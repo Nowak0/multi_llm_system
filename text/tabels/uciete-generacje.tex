@@ -1,33 +1,28 @@
 % !TEX root = ../main.tex
 \begin{table}[H]
     \centering
-    \caption{Ucięte generacje w poszczególnych konfiguracjach}
+    \caption[Zadania z uciętą generacją według przyczyny]{Zadania z uciętą generacją według przyczyny. $n = 250$ zadań na konfigurację. Zadanie liczono, gdy co najmniej jedno jego wywołanie zostało ucięte po wyczerpaniu okna kontekstu. Przyczyny są rozłączne i sprawdzane w kolejności kolumn: zapętlenie (powtórzenia lub nadmiar słów-poprawek), długi prompt (co najmniej połowa okna) i długie rozumowanie bez powtórzeń.}
     \label{tab:uciete_generacje}
     \small
     \setlength{\tabcolsep}{2.5pt}
     \renewcommand{\arraystretch}{1.35}
     \sbox0{%
-    \begin{tabular}{|>{\centering\arraybackslash}p{2.0cm}|>{\centering\arraybackslash}p{2.2cm}|>{\centering\arraybackslash}p{1.6cm}|>{\centering\arraybackslash}p{2.1cm}|>{\centering\arraybackslash}p{1.9cm}|>{\centering\arraybackslash}p{2.2cm}|}
+    \begin{tabular}{|>{\centering\arraybackslash}p{1.9cm}|>{\centering\arraybackslash}p{2.1cm}|>{\centering\arraybackslash}p{1.4cm}|>{\centering\arraybackslash}p{1.3cm}|>{\centering\arraybackslash}p{2.0cm}|>{\centering\arraybackslash}p{2.3cm}|>{\centering\arraybackslash}p{2.9cm}|}
         \hline
         \rowcolor{gray!20}
-        \multicolumn{2}{|c|}{} & \multicolumn{3}{c|}{\textbf{Ucięte wywołania [\%]}} & \textbf{Tokeny z uciętych} \\ \cline{3-5}
+        \multicolumn{2}{|c|}{} & \multicolumn{2}{c|}{\textbf{Zadania z ucięciem}} & \multicolumn{3}{c|}{\textbf{w tym z powodu}} \\ \cline{3-7}
         \rowcolor{gray!20}
-        \textbf{Zbiór} & \textbf{Konfiguracja} & \textbf{razem} & \textbf{runda niezależna} & \textbf{rundy debaty} & \textbf{wywołań [\%]} \\ \hline
-        Matematyka & Q & 3,6 & -- & -- & 19,4 \\ \cline{2-6}
-         & G & 8,8 & -- & -- & 37,7 \\ \cline{2-6}
-         & Q+Q & 6,9 & 3,8 & 14,8 & 23,9 \\ \cline{2-6}
-         & Q+G & 12,2 & 6,4 & 20,9 & 36,6 \\ \cline{2-6}
-         & G+G & 21,5 & 10,0 & 55,3 & 57,2 \\ \hline
-        Medycyna & Q & 0,8 & -- & -- & 6,4 \\ \cline{2-6}
-         & G & 1,2 & -- & -- & 11,2 \\ \cline{2-6}
-         & Q+Q & 0,8 & 0,4 & 2,7 & 5,2 \\ \cline{2-6}
-         & Q+G & 0,8 & 0,2 & 1,8 & 4,6 \\ \cline{2-6}
-         & G+G & 0,4 & 0,4 & 0,0 & 3,1 \\ \hline
+        \textbf{Zbiór} & \textbf{Konfiguracja} & \textbf{liczba} & \textbf{[\%]} & \textbf{zapętlenia} & \textbf{długiego promptu} & \textbf{długiego rozumowania} \\ \hline
+        Matematyka & Q & 9 & 3,6 & 3 & 0 & 6 \\ \cline{2-7}
+         & G & 22 & 8,8 & 21 & 0 & 1 \\ \cline{2-7}
+         & Q+Q & 22 & 8,8 & 8 & 7 & 7 \\ \cline{2-7}
+         & Q+G & 39 & 15,6 & 34 & 3 & 2 \\ \cline{2-7}
+         & G+G & 36 & 14,4 & 33 & 3 & 0 \\ \hline
+        Medycyna & Q & 2 & 0,8 & 1 & 0 & 1 \\ \cline{2-7}
+         & G & 3 & 1,2 & 3 & 0 & 0 \\ \cline{2-7}
+         & Q+Q & 4 & 1,6 & 2 & 1 & 1 \\ \cline{2-7}
+         & Q+G & 4 & 1,6 & 2 & 1 & 1 \\ \cline{2-7}
+         & G+G & 2 & 0,8 & 2 & 0 & 0 \\ \hline
     \end{tabular}}
     \usebox{0}
-    \par\smallskip
-    \begin{minipage}{\wd0}
-        \raggedright\footnotesize
-        „Ucięte wywołania [\%]” -- odsetek wywołań modelu, w których generacja została przerwana po wyczerpaniu okna kontekstu; „razem” -- wszystkie wywołania (w trybie solo jedno na zadanie), „runda niezależna” i „rundy debaty” -- wywołania w odpowiednim etapie debaty. „Tokeny z uciętych wywołań [\%]” -- część wszystkich tokenów (prompt i wygenerowana odpowiedź), którą zużyły ucięte wywołania. Oznaczenia konfiguracji jak w tabeli~\ref{tab:wyniki_zbiorcze}.
-    \end{minipage}
 \end{table}
