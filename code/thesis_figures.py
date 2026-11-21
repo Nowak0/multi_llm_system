@@ -279,8 +279,9 @@ def header_row(cells, rule=r"\hline"):
     return [r"\rowcolor{gray!20}", table_row(cells, rule)]
 
 
-def render_table(label, title, spec, header, body, description=None, fit_width=False):
-    caption = f"\\caption[{title}]{{{title}. {description}}}" if description else f"\\caption{{{title}}}"
+def render_table(label, title, spec, header, body, description=None, fit_width=False, long_title=None):
+    full_title = long_title or title
+    caption = f"\\caption[{title}]{{{full_title}. {description}}}" if description else f"\\caption{{{title}}}"
     lines = [
         "% !TEX root = ../main.tex",
         r"\begin{table}[H]",
@@ -361,14 +362,12 @@ def build_outcome_table(stats):
     return render_table("tab:wyniki_zbiorcze", title, spec, header, body, description)
 
 
-def build_cost_table(stats, truncation_tasks):
-    truncated = {(row["dataset"], row["config"]): row for row in truncation_tasks}
+def build_cost_table(stats):
     header = header_row([
         r"\textbf{Zbiór}",
         r"\textbf{Konfiguracja}",
         r"\textbf{Średni czas [s]}",
         r"\textbf{Tokeny na zadanie}",
-        r"\textbf{Tokeny w zadaniach z ucięciem [\%]}",
     ])
     body = []
     for domain in DOMAINS:
@@ -379,19 +378,16 @@ def build_cost_table(stats, truncation_tasks):
                 config.label,
                 decimal(s["mean_time"]),
                 thousands(s["tokens_per_task"]),
-                decimal(truncated[(domain, config.label)]["truncated_tasks_tokens_pct"]),
             ]
             is_last = index == len(CONFIGS) - 1
-            body.append(table_row(cells, r"\hline" if is_last else r"\cline{2-5}"))
+            body.append(table_row(cells, r"\hline" if is_last else r"\cline{2-4}"))
     spec = column_spec(
-        [center_column("2.0cm"), center_column("2.2cm"), center_column("2.4cm"), center_column("2.4cm"), center_column("3.2cm")]
+        [center_column("2.0cm"), center_column("2.2cm"), center_column("2.4cm"), center_column("2.4cm")]
     )
     title = "Średni czas rozwiązania i liczba tokenów na zadanie"
     description = (
         r"$n = 250$ zadań na zbiór; oznaczenia konfiguracji jak w tabeli~\ref{tab:wyniki_zbiorcze}. "
-        "Tokeny (wejściowe i wygenerowane) zliczono we wszystkich wywołaniach. "
-        r"Ostatnia kolumna to udział tokenów zużytych w zadaniach, w których wystąpiło ucięcie generacji "
-        r"(sekcja~\ref{sec:niepowodzenia})."
+        "Tokeny (wejściowe i wygenerowane) zliczono we wszystkich wywołaniach."
     )
     return render_table("tab:koszt_zbiorczy", title, spec, header, body, description)
 
@@ -489,12 +485,15 @@ def build_paired_table(results, stats):
         f"{best_solo_label(stats, domain)} {DOMAIN_LOCATIVE[domain]}" for domain in DOMAINS
     )
     description = (
-        r"A i B -- pierwsza i druga konfiguracja w kolumnie „Porównanie”; $\Delta$ -- różnica dokładności A $-$ B "
+        r"A i B -- pierwsza i druga konfiguracja w kolumnie „Porównanie”; $\Delta$ -- różnica dokładności A vs B "
         "w punktach procentowych (pp); „tylko A” i „tylko B” -- zadania rozwiązane poprawnie wyłącznie przez daną "
         r"konfigurację; $p$ -- dokładny test McNemara, pogrubiono $p < 0{,}05$. "
         f"Lepszy solo: {best}."
     )
-    return render_table("tab:testy_parowane", title, spec, header, body, description, fit_width=True)
+    return render_table(
+        "tab:testy_parowane", title, spec, header, body, description, fit_width=True,
+        long_title="Porównania konfiguracji par na tych samych zadaniach",
+    )
 
 
 def answer_is_correct(answer, gold, domain):
@@ -570,7 +569,7 @@ def build_balance_table(rows):
         ],
         r"\cline{3-8}",
     ) + header_row(
-        [sub("Zbiór"), sub("Debata"), sub("razem"), sub("w tym poprawna"), sub("razem"),
+        [sub("Zbiór"), sub("Debata"), sub("razem"), sub("w tym poprawne"), sub("razem"),
          sub("w tym uratowane"), sub("razem"), sub("w tym utracone")]
     )
     body = []
@@ -598,7 +597,7 @@ def build_balance_table(rows):
     description = (
         "Liczba zadań, dla każdej debaty $n = 250$. „Zgoda od razu” -- modele zgodziły się w rundzie niezależnej, "
         "więc debata się nie odbyła. „Uratowane” -- zadania z poprawnym wynikiem końcowym, gdy w rundzie niezależnej "
-        "nikt nie miał poprawnej odpowiedzi; „utracone” -- zadania z niepoprawnym wynikiem końcowym (także abstain), "
+        "żaden nie miał poprawnej odpowiedzi. „Utracone” -- zadania z niepoprawnym wynikiem końcowym (także abstain), "
         "gdy poprawną odpowiedź miał jeden z modeli."
     )
     return render_table("tab:bilans_debaty", title, spec, header, body, description)
@@ -677,8 +676,7 @@ def build_truncation_table(rows):
     )
     title = "Zadania z uciętą generacją według przyczyny"
     description = (
-        "$n = 250$ zadań na konfigurację. Zadanie liczono, gdy co najmniej jedno jego wywołanie zostało ucięte po "
-        "wyczerpaniu okna kontekstu. Przyczyny są rozłączne i sprawdzane w kolejności kolumn: zapętlenie (powtórzenia "
+        "$n = 250$ zadań na konfigurację. Przyczyny dzielą się na: zapętlenie (powtórzenia "
         "lub nadmiar słów-poprawek), długi prompt (co najmniej połowa okna) i długie rozumowanie bez powtórzeń."
     )
     return render_table("tab:uciete_generacje", title, spec, header, body, description)
@@ -1095,9 +1093,7 @@ def build_pilot_table(rows):
     )
     title = "Tryb bez rozumowania i z rozumowaniem na tych samych zadaniach"
     description = (
-        "„Brak odpowiedzi” to null w trybie solo (generacja ucięta po wyczerpaniu okna kontekstu) i abstain w debacie "
-        "(brak konsensusu). Poprawne, błędne i brak odpowiedzi podano w liczbach zadań, a tokeny obejmują prompt "
-        "i wygenerowaną odpowiedź."
+        "„Brak odpowiedzi” to null w trybie solo i abstain w debacie."
     )
     return render_table("tab:pilotaz_rozumowanie", title, spec, header, body, description, fit_width=True)
 
@@ -1334,7 +1330,7 @@ def main():
 
     write_csv(RESULTS_DIR / "main_table.csv", main_table_rows(stats))
     write_text(TABLES_DIR / "wyniki-zbiorcze.tex", build_outcome_table(stats))
-    write_text(TABLES_DIR / "koszt-zbiorczy.tex", build_cost_table(stats, truncation_tasks))
+    write_text(TABLES_DIR / "koszt-zbiorczy.tex", build_cost_table(stats))
 
     paired = paired_results(main_data, stats)
     write_csv(RESULTS_DIR / "paired_tests.csv", paired)
