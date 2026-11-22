@@ -17,7 +17,7 @@ Jest to podzbiór 500 zadań z benchmarku MATH \cite{hendrycksmath2021}, wybrany
 
 \subsubsection{MedMCQA} 
 
-Zbiór \cite{pmlr-v174-pal22a} zawiera ponad 194\,000 pytań z egzaminów wstępnych AIIMS i NEET~PG. Obejmuje 21 przedmiotów i około 2400 tematów medycznych. Każde pytanie ma cztery opcje odpowiedzi i dokładnie jedną poprawną. O wyniku decyduje przede wszystkim wiedza, a rozumowanie ma mniejsze znaczenie. MedMCQA jest przeciwieństwem MATH-500 i pozwala sprawdzić, czy debata pomaga także wtedy, gdy zadanie sprowadza się do przypomnienia faktu. Zamknięty format ma jedną konsekwencję: losowy wybór daje 25\% szansy na trafienie poprawnej odpowiedzi.
+Zbiór \cite{pmlr-v174-pal22a} zawiera ponad 194\,000 pytań z egzaminów wstępnych AIIMS i NEET~PG. Obejmuje 21 przedmiotów i około 2400 tematów medycznych, m.in. anatomię, farmakologię, patologię, mikrobiologię i pediatrię. AIIMS (\textit{All India Institute of Medical Sciences}) to sieć państwowych indyjskich uczelni medycznych, które prowadzą własny egzamin na studia podyplomowe. NEET~PG (\textit{National Eligibility cum Entrance Test for Postgraduate}) to ogólnokrajowy egzamin kwalifikacyjny dla lekarzy, którzy chcą rozpocząć specjalizację. Oba egzaminy mają formę testów wielokrotnego wyboru. Każde pytanie ma cztery opcje odpowiedzi i dokładnie jedną poprawną. O wyniku decyduje przede wszystkim wiedza, a nie długie rozumowanie. MedMCQA jest więc przeciwieństwem MATH-500 i pozwala sprawdzić, czy debata pomaga także wtedy, gdy zadanie sprowadza się do przypomnienia faktu. Zamknięty format ma jedną konsekwencję: losowy wybór daje 25\% szansy na trafienie poprawnej odpowiedzi.
 
 \subsubsection{Dobór zadań}
 
@@ -40,7 +40,7 @@ Każde zadanie kończy się jednym z czterech wyników:
     \item \emph{null} -- w trybie pojedynczego modelu generacja została ucięta po wyczerpaniu okna kontekstu o długości 4096 tokenów (prompt i generowany tekst łącznie) i nie zawiera odpowiedzi.
 \end{itemize}
 
-Taki podział pokazuje, w jaki sposób system zawodzi, czego nie widać w samym odsetku poprawnych odpowiedzi. Przyjęto hierarchię, w której poprawna odpowiedź jest najlepsza, a błędna najgorsza. Abstain uznano za lepszy od błędu i od null, ponieważ system, który nie ma pewności, powinien raczej powstrzymać się od odpowiedzi, niż halucynować. Abstain nie musi przy tym oznaczać niepewności modeli, bo może wynikać także z ucięcia generacji (sekcja~\ref{sec:niepowodzenia}).
+Taki podział pokazuje, w jaki sposób system zawodzi, czego nie widać w samym odsetku poprawnych odpowiedzi. Przyjęto hierarchię, w której poprawna odpowiedź jest najlepsza, a błędna najgorsza. Abstain uznano za lepszy od błędu i od null, ponieważ system, który nie ma pewności, powinien raczej powstrzymać się od odpowiedzi, niż halucynować (sekcja~\ref{sec:niepowodzenia}).
 
 \subsubsection{Dokładność}
 
@@ -58,7 +58,7 @@ Przyjęto poziom istotności $\alpha = 0{,}05$. Wyniki zebrano w tabeli~\ref{tab
 
 \subsubsection{Metryki diagnostyczne debaty}
 
-Sama dokładność nie wyjaśnia, jak debata zmienia wynik. Dlatego dla każdej debaty zestawiono wynik końcowy z rundą niezależną, w której modele odpowiadają, nie znając odpowiedzi drugiego. Na tej podstawie wyznaczono odsetek zadań rozstrzygniętych bez debaty oraz liczbę zadań uratowanych i utraconych. Definicje tych miar i ich interpretacja znajdują się w sekcji~\ref{sec:kiedy_debata_pomaga}.
+Sama dokładność nie wyjaśnia, jak debata zmienia wynik. Dlatego każde zadanie porównujemy z rundą niezależną, czyli rundą, w której modele odpowiadają, zanim poznają odpowiedź drugiego. Na tej podstawie wyznaczamy odsetek zadań rozstrzygniętych bez debaty oraz liczbę zadań uratowanych i utraconych przez debatę. Zadanie uratowane to takie, w którym żaden model nie odpowiedział poprawnie w rundzie niezależnej, a wynik końcowy jest poprawny. Zadanie utracone to takie, w którym poprawną odpowiedź miał jeden z modeli, a wynik końcowy jest błędny lub nie ma zgody stron. Szczegółową analizę zawiera sekcja~\ref{sec:kiedy_debata_pomaga}.
 
 \subsubsection{Koszt obliczeniowy}
 \label{sec:koszt_metryka}
