@@ -9,7 +9,7 @@ Niniejszy rozdział wprowadza w dziedzinę, w której osadzona jest praca. Najpi
 
 Sztuczna inteligencja (SI) obejmuje metody, które pozwalają komputerom wykonywać zadania wymagające zwykle ludzkiej inteligencji. Jej istotną częścią jest uczenie maszynowe (ang. Machine Learning, ML), w którym zależności nie są programowane wprost, lecz wyznaczane przez algorytm na podstawie danych. Szczególnym przypadkiem uczenia maszynowego są sztuczne sieci neuronowe (ang. Artificial Neural Networks), czyli modele zbudowane z warstw prostych jednostek obliczeniowych, których parametry dobierane są w procesie uczenia. Sieci składające się z wielu warstw określa się mianem uczenia głębokiego (ang. Deep Learning, DL). Umożliwiło ono modelowanie bardzo złożonych zależności w danych, takich jak tekst, obraz czy dźwięk.
 
-Na uczeniu głębokim opiera się współczesna generatywna sztuczna inteligencja (ang. Generative Artificial Intelligence, GenAI). Według \cite{feuerriegel_generative_ai} są to techniki obliczeniowe zdolne do generowania pozornie nowych, sensownych treści, takich jak tekst, obrazy czy dźwięk, na podstawie danych treningowych. Modele generatywne nie ograniczają się więc do klasyfikowania danych wejściowych lub przewidywania pojedynczej wartości, lecz tworzą nowe dane, przypominające te, na których były uczone. Wśród nich szczególne miejsce zajmują duże modele językowe, opisane w sekcji \ref{sec:llm}.
+Na uczeniu głębokim opiera się współczesna generatywna sztuczna inteligencja (ang. Generative Artificial Intelligence, GenAI). Według \cite{feuerriegel_generative_ai} są to techniki obliczeniowe zdolne do generowania pozornie nowych, sensownych treści, takich jak tekst, obrazy czy dźwięk, na podstawie danych treningowych. Modele generatywne, w odróżnieniu od modeli klasyfikujących dane wejściowe lub przewidujących pojedynczą wartość, tworzą nowe dane, przypominające te, na których były uczone. Wśród nich szczególne miejsce zajmują duże modele językowe, opisane w sekcji \ref{sec:llm}.
 
 \subsection{Zasada działania i zastosowania}
 
@@ -82,7 +82,7 @@ Cenę za tę poprawę płaci się w obliczeniach. Każde dodatkowe próbkowanie 
 
 \subsubsection{Halucynacje}
 
-Mimo imponujących możliwości duże modele językowe mają ograniczenia. Najczęściej wskazuje się wśród nich halucynacje, czyli generowanie błędnych lub niemających oparcia w faktach treści \cite{ma_collaboration}. Problem nie polega wyłącznie na tym, że model się myli. Błędne informacje podaje on tym samym płynnym, zdecydowanym tonem co poprawne, więc z samej formy odpowiedzi trudno ocenić, czy można jej zaufać. Wynika to ze sposobu działania modelu: wybiera on tekst najbardziej prawdopodobny w danym kontekście, a nie sprawdza go z wiarygodnym źródłem wiedzy.
+Mimo imponujących możliwości duże modele językowe mają ograniczenia. Najczęściej wskazuje się wśród nich halucynacje, czyli generowanie błędnych lub niemających oparcia w faktach treści \cite{ma_collaboration}. Dodatkową trudnością jest to, że błędne informacje model podaje tym samym płynnym, zdecydowanym tonem co poprawne, więc z samej formy odpowiedzi trudno ocenić, czy można jej zaufać. Wynika to ze sposobu działania modelu: wybiera on tekst najbardziej prawdopodobny w danym kontekście, bez sprawdzania go w wiarygodnym źródle wiedzy.
 
 Ryzyko rośnie w systemach złożonych z kilku współpracujących modeli lub agentów. Halucynacja jednego z nich może wywołać efekt kaskadowy: kolejne elementy systemu przyjmują błędny wynik jako pewnik i budują na nim dalsze rozumowanie, przez co błąd się powiela i wzmacnia \cite{llm_hallucination_survey}. Im dłuższy łańcuch przetwarzania, tym trudniej wskazać, w którym miejscu pojawił się pierwotny fałsz.
 
@@ -90,7 +90,7 @@ Ryzyko rośnie w systemach złożonych z kilku współpracujących modeli lub ag
 
 \section{Mechanizmy współpracy}
 
-Ograniczenia opisane w poprzednich sekcjach, przede wszystkim halucynacje i brak samoweryfikacji, skłoniły badaczy do łączenia kilku wywołań modeli językowych w jeden system. Zamiast polegać na pojedynczej odpowiedzi, taki system zbiera kilka odpowiedzi, a następnie je porównuje, ocenia albo uzgadnia. Uczestnikami mogą być kolejne wywołania tego samego modelu albo różne modele. Każde dodatkowe wywołanie zwiększa koszt obliczeniowy, więc poszczególne mechanizmy różnią się nie tylko skutecznością, lecz także ceną.
+Ograniczenia opisane w poprzednich sekcjach, przede wszystkim halucynacje i brak samoweryfikacji, skłoniły badaczy do łączenia kilku wywołań modeli językowych w jeden system. Zamiast polegać na pojedynczej odpowiedzi, taki system zbiera kilka odpowiedzi, a następnie je porównuje, ocenia albo uzgadnia. Uczestnikami mogą być kolejne wywołania tego samego modelu albo różne modele. Każde dodatkowe wywołanie zwiększa koszt obliczeniowy, więc poszczególne mechanizmy różnią się skutecznością i ceną.
 
 \subsection{Głosowanie}
 

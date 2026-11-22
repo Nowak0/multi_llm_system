@@ -41,7 +41,7 @@
 
 %% matematyka: osobny krój, ponieważ Arial nie zawiera glifów matematycznych
 \RequirePackage{unicode-math}
-\setmathfont{Latin Modern Math} % ewentualnie STIX Two Math / XITS / Fira Math
+\setmathfont{latinmodern-math.otf} % ewentualnie STIX Two Math / XITS / Fira Math
 
 %% domyślną rodziną tekstu ustaw bezszeryfową (Arial)
 \renewcommand\familydefault{\sfdefault}

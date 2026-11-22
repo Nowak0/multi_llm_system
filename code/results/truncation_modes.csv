@@ -1,0 +1,7 @@
+mode,configs,tasks,truncated_tasks,loop_tasks,loop_tasks_pct,long_prompt_tasks,other_tasks,repeated_fragment_tasks,repeated_fragment_tasks_pct,no_answer_tasks,marker_density_limit_per_1k_tokens
+main,all,2500,143,109,76.2,15,19,95,66.4,0,15.2
+main,with_G,1500,106,95,89.6,7,4,86,81.1,0,15.2
+main,only_Q,1000,37,14,37.8,8,15,9,24.3,0,15.2
+reasoning,all,148,84,67,79.8,0,17,55,65.5,81,15.2
+reasoning,with_G,79,63,61,96.8,0,2,54,85.7,62,15.2
+reasoning,only_Q,69,21,6,28.6,0,15,1,4.8,19,15.2

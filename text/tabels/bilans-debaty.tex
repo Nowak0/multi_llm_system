@@ -1,7 +1,7 @@
 % !TEX root = ../main.tex
 \begin{table}[H]
     \centering
-    \caption{Bilans debaty względem rundy niezależnej (liczba zadań, dla każdej debaty $n = 250$)}
+    \caption[Bilans debaty względem rundy niezależnej]{Bilans debaty względem rundy niezależnej. Liczba zadań, dla każdej debaty $n = 250$. „Zgoda od razu” -- modele zgodziły się w rundzie niezależnej, więc debata się nie odbyła. „Uratowane” -- zadania z poprawnym wynikiem końcowym, gdy w rundzie niezależnej żaden nie miał poprawnej odpowiedzi. „Utracone” -- zadania z niepoprawnym wynikiem końcowym (także abstain), gdy poprawną odpowiedź miał jeden z modeli.}
     \label{tab:bilans_debaty}
     \small
     \setlength{\tabcolsep}{2.5pt}
@@ -12,7 +12,7 @@
         \rowcolor{gray!20}
         \multicolumn{2}{|c|}{} & \multicolumn{2}{c|}{\shortstack{\textbf{Zgoda}\\\textbf{od razu}}} & \multicolumn{2}{c|}{\shortstack{\textbf{Żaden model}\\\textbf{poprawny}}} & \multicolumn{2}{c|}{\shortstack{\textbf{Jeden model}\\\textbf{poprawny}}} \\ \cline{3-8}
         \rowcolor{gray!20}
-        \textbf{Zbiór} & \textbf{Debata} & \textbf{razem} & \textbf{w tym poprawna} & \textbf{razem} & \textbf{w tym uratowane} & \textbf{razem} & \textbf{w tym utracone} \\ \hline
+        \textbf{Zbiór} & \textbf{Debata} & \textbf{razem} & \textbf{w tym poprawne} & \textbf{razem} & \textbf{w tym uratowane} & \textbf{razem} & \textbf{w tym utracone} \\ \hline
         Matematyka & Q+Q & 185 & 134 & 37 & 19 & 28 & 1 \\ \cline{2-8}
          & Q+G & 141 & 132 & 36 & 10 & 73 & 1 \\ \cline{2-8}
          & G+G & 207 & 185 & 30 & 8 & 13 & 3 \\ \hline
@@ -21,9 +21,4 @@
          & G+G & 229 & 150 & 10 & 1 & 11 & 6 \\ \hline
     \end{tabular}}
     \usebox{0}
-    \par\smallskip
-    \begin{minipage}{\wd0}
-        \raggedright\footnotesize
-        „Zgoda od razu” -- oba modele podały równoważne odpowiedzi w rundzie niezależnej, więc debata się nie odbyła; „w tym poprawna” -- ta odpowiedź jest poprawna. Pozostałe zadania trafiły do debaty: w grupie „Żaden model poprawny” nikt nie podał w rundzie niezależnej poprawnej odpowiedzi, a w grupie „Jeden model poprawny” podał ją jeden z modeli. W pierwszej z tych grup „w tym uratowane” oznacza zadania z poprawnym wynikiem końcowym, a w drugiej „w tym utracone” -- z niepoprawnym wynikiem końcowym (także abstain).
-    \end{minipage}
 \end{table}

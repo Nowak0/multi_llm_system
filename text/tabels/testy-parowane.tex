@@ -1,7 +1,7 @@
 % !TEX root = ../main.tex
 \begin{table}[H]
     \centering
-    \caption{Porównania parami konfiguracji na tych samych zadaniach}
+    \caption[Porównania parami konfiguracji na tych samych zadaniach]{Porównania konfiguracji par na tych samych zadaniach. A i B -- pierwsza i druga konfiguracja w kolumnie „Porównanie”; $\Delta$ -- różnica dokładności A vs B w punktach procentowych (pp); „tylko A” i „tylko B” -- zadania rozwiązane poprawnie wyłącznie przez daną konfigurację; $p$ -- dokładny test McNemara, pogrubiono $p < 0{,}05$. Lepszy solo: G w matematyce, Q w medycynie.}
     \label{tab:testy_parowane}
     \small
     \setlength{\tabcolsep}{2.5pt}
@@ -20,10 +20,6 @@
         Q+G vs G+G & $+$4,4 & 17 & 6 & \textbf{0,035} & $+$5,6 & 29 & 15 & \textbf{0,049} \\ \hline
         G vs Q & $+$17,2 & 58 & 15 & \textbf{$<$0,001} & $-$6,0 & 25 & 40 & 0,082 \\ \hline
     \end{tabular}}
+    \ifdim\wd0>\textwidth\sbox0{\resizebox{\textwidth}{!}{\usebox0}}\fi
     \usebox{0}
-    \par\smallskip
-    \begin{minipage}{\wd0}
-        \raggedright\footnotesize
-        A i B -- pierwsza i druga konfiguracja w kolumnie „Porównanie”; „$\Delta$ [pp]” -- różnica odsetka poprawnych odpowiedzi A $-$ B w punktach procentowych (pp); „tylko A” i „tylko B” -- liczba zadań rozwiązanych poprawnie wyłącznie przez daną konfigurację; „p” -- wartość p dokładnego testu McNemara, pogrubiona dla $p < 0{,}05$. Lepszy solo: G w matematyce, Q w medycynie.
-    \end{minipage}
 \end{table}
